@@ -1,0 +1,4 @@
+Please change the working directory to /sys/class/tty and list the files of this folder.
+You can see a lot of the tty files including the ttyUSB*. These ttyUSB* files are linked to the USB port when USB console plugs to USB hub.
+The absolute path of these ttyUSB* files include the USB node ID. Put the USB node ID in the JSON file and the attribute is "usb_id" in the "COM*".
+After the new USB console plugs to the USB hub, the terminal server map the usb node id getting from the ttyUSB* to the COM*.
