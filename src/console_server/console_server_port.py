@@ -23,7 +23,7 @@ class ConsoleServerSerialPort(threading.Thread):
             "[%(asctime)s][%(name)-5s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
-        self._logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger(__name__ + " {}".format(self._serial_port_id))
         self._screen_handler = logging.StreamHandler()
         self._screen_handler.setLevel(logging.WARNING)
         self._screen_handler.setFormatter(self._formatter)
