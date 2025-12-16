@@ -136,7 +136,7 @@ class SshServerPassWdAuthenticator(paramiko.ServerInterface):
         return True
 
 
-class SshServeNoPassWdrAuthenticator:
+class SshServerNoneAuthenticator(paramiko.ServerInterface):
     def __init__(self, ssh_key_handler):
         self.thread_event = threading.Event()
         self._ssh_key_handler = ssh_key_handler

@@ -109,7 +109,7 @@ class SshServerDaemon(threading.Thread):
                         client_sock = self._server_sock.accept()
                         self._logger.info("A new client arrived. {}".format(client_sock[0].getpeername()))
                         server_handler = self._server_handler(client_sock[0], self._key_handler,
-                                                              ssh_server_class=SshAuthenticator)
+                                                              ssh_authenticator_server_class=SshAuthenticator)
                         server_handler.start()
                         self._logger.info("A new thread to service the client {}".format(client_sock[0].getpeername()))
                         self._server_handlers.append(server_handler)

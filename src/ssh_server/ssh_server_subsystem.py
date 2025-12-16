@@ -5,13 +5,13 @@ import threading
 import select
 
 from src.common.rc_code import RcCode
-from src.ssh_server.ssh_server_authenticator import SshServerPassWdAuthenticator, SshKeyHandler
-from src.ssh_server.ssh_server_handler import SshServerHandler
+from src.ssh_server.ssh_server_authenticator import SshServerNoneAuthenticator, SshServerPassWdAuthenticator, SshKeyHandler
+from src.ssh_server.ssh_server_handler import SshServerHandler, SshServerNoneAuthHandler, SshServerPassWdAuthHandler
 
 
 class SshServerSubsystem(threading.Thread):
     def __init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, daemon_id, polling_interval,
-                 ssh_key_handler, ssh_authenticator):
+                 ssh_handler_class, ssh_key_handler, ssh_authenticator):
         threading.Thread.__init__(self)
         self._ssh_ip_addr = ssh_ip_addr
         self._ssh_port_list = ssh_port_list
@@ -21,6 +21,7 @@ class SshServerSubsystem(threading.Thread):
         self._running = False
         self._server_epoll = None
         self._polling_interval = polling_interval
+        self._ssh_handler_class = ssh_handler_class
         self._ssh_key_handler = ssh_key_handler
         self._authenticator = ssh_authenticator
 
@@ -32,6 +33,8 @@ class SshServerSubsystem(threading.Thread):
         #       }
         # }
         self._ssh_subsystem_sock = {}
+
+        # Save the socket information
         self._server_handler_list = []
 
         self._formatter = logging.Formatter(
@@ -135,11 +138,12 @@ class SshServerSubsystem(threading.Thread):
                             find_socket = True
                             server_socket = self._ssh_subsystem_sock[server_port_id]["socket"]
                             break
-                    if find_socket:
+                    if find_socket and select.EPOLLIN:
+                        # A new client wants to connect the sever. Create a SSH server handler for this client
                         client_sock = server_socket.accept()
                         self._logger.info("A new client arrived. {}".format(client_sock[0].getpeername()))
-                        server_handler = SshServerHandler(client_sock[0],
-                                                          self._ssh_key_handler, ssh_server_class=self._authenticator)
+                        server_handler = self._ssh_handler_class(client_sock[0], 
+                                                                 self._ssh_key_handler, ssh_authenticator_server_class=self._authenticator)
                         server_handler.start()
                         self._logger.info("A new thread to service the client {}".format(client_sock[0].getpeername()))
                         self._server_handler_list.append(server_handler)
@@ -153,15 +157,17 @@ class SshServerSubsystem(threading.Thread):
             self._logger.warning("Socket error occurs.")
 
 
-class SshServerAuthSubSystem(threading.Thread, SshServerSubsystem):
+class SshServerPassWdAuthSubSystem(threading.Thread, SshServerSubsystem):
     def __init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, daemon_id, polling_interval):
         threading.Thread.__init__(self)
-        SshServerSubsystem.__init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, daemon_id,
-                                    polling_interval, SshKeyHandler, SshServerPassWdAuthenticator)
+        self._ssh_key_handler = SshKeyHandler()
+        SshServerSubsystem.__init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, daemon_id, polling_interval, 
+                                    SshServerPassWdAuthHandler, self._ssh_key_handler, SshServerPassWdAuthenticator)
 
 
-class SshServerNoAuthSubSystem(threading.Thread, SshServerSubsystem):
+class SshServerNoneAuthSubSystem(threading.Thread, SshServerSubsystem):
     def __init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, daemon_id, polling_interval):
         threading.Thread.__init__(self)
-        SshServerSubsystem.__init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, daemon_id,
-                                    polling_interval, SshKeyHandler, SshServerPassWdAuthenticator)
+        self._ssh_key_handler = SshKeyHandler()
+        SshServerSubsystem.__init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, daemon_id, polling_interval,
+                                    SshServerNoneAuthHandler, self._ssh_key_handle, SshServerNoneAuthenticator)

@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 import paramiko
 
@@ -6,12 +7,13 @@ from src.common.rc_code import RcCode
 
 
 class SshServerHandler(threading.Thread):
-    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_server_class=None):
+    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
         threading.Thread.__init__(self)
+        self._username = os.getlogin()
         self._client_sock = client_sock
         self._key_handler = ssh_key_handler
         self._channel_timeout = channel_timeout
-        self._ssh_server_class = ssh_server_class
+        self.ssh_authenticator_server_class = ssh_authenticator_server_class
 
         self._transporter = None
         self._server = None
@@ -59,7 +61,7 @@ class SshServerHandler(threading.Thread):
         if not self.started:
             self._logger.warning("SSH server does not start.")
             return RcCode.FAILURE
-        self._server = self._ssh_server_class(ssh_key_handler=self._key_handler)
+        self._server = self.ssh_authenticator_server_class(ssh_key_handler=self._key_handler)
         try:
             self._transporter.start_server(server=self._server)
         except paramiko.SSHException:
@@ -85,7 +87,7 @@ class SshServerHandler(threading.Thread):
         self._client_sock.close()
 
     def handler(self, *args, **kwargs):
-        pass
+        raise NotImplemented
 
     def run(self):
         self._logger.info("Create transport...")
@@ -121,3 +123,19 @@ class SshServerHandler(threading.Thread):
         self.handler()
         self.close_client()
         self._logger.info("SSH client closed.")
+
+
+class SshServerPassWdAuthHandler(SshServerHandler):
+    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_server_class=None):
+        SshServerHandler.__init__(client_sock, ssh_key_handler, channel_timeout, ssh_server_class)
+
+    def handler(self, *args, **kwargs):
+        return super().handler(*args, **kwargs)
+
+
+class SshServerNoneAuthHandler(SshServerHandler):
+    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_server_class=None):
+        SshServerHandler.__init__(client_sock, ssh_key_handler, channel_timeout, ssh_server_class)
+
+    def handler(self, *args, **kwargs):
+        return super().handler(*args, **kwargs)
