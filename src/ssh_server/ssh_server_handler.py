@@ -4,6 +4,7 @@ import threading
 import paramiko
 
 from src.common.rc_code import RcCode
+from src.ssh_server.ssh_server_menu import SshServerMenu
 
 
 class SshServerHandler(threading.Thread):
@@ -19,20 +20,22 @@ class SshServerHandler(threading.Thread):
         self._server = None
         self._channel = None
         self.init = True
-        self.running = False
         self.started = False
+        self.running = False
+        self.complete = False
 
-        host, port = client_sock.getpeername()
+        self._logger = logging.getLogger(__name__)
 
+    def _init_logger_system(self):
         self._formatter = logging.Formatter(
             "[%(asctime)s][%(name)-5s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
-        self._logger = logging.getLogger(__name__)
         self._screen_handler = logging.StreamHandler()
         self._screen_handler.setLevel(logging.WARNING)
         self._screen_handler.setFormatter(self._formatter)
 
+        host, port = self._client_sock.getpeername()
         self._file_handler = logging.FileHandler('/var/log/ssh-server-{}:{}.log'.format(host, port))
         self._file_handler.setLevel(logging.INFO)
         self._file_handler.setFormatter(self._formatter)
@@ -117,25 +120,26 @@ class SshServerHandler(threading.Thread):
             self._logger.warning("Wait ssh verification fail...")
             self.close_client()
             return
-        self._logger.info("SSH client init DONE !!")
 
-        self._logger.info("Start access the SSH message.")
-        self.handler()
-        self.close_client()
-        self._logger.info("SSH client closed.")
+        self._logger.info("SSH client init DONE !!")
+        self.complete = True
 
 
 class SshServerPassWdAuthHandler(SshServerHandler):
-    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_server_class=None):
-        SshServerHandler.__init__(client_sock, ssh_key_handler, channel_timeout, ssh_server_class)
+    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
+        SshServerHandler.__init__(client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
+        self._ssh_user_menu_mode = SshServerMenu.SSH_SERVER_DEFAULT_MENU
+        self._username = os.getlogin()
 
     def handler(self, *args, **kwargs):
         return super().handler(*args, **kwargs)
 
 
 class SshServerNoneAuthHandler(SshServerHandler):
-    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_server_class=None):
-        SshServerHandler.__init__(client_sock, ssh_key_handler, channel_timeout, ssh_server_class)
+    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
+        SshServerHandler.__init__(client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
+        self._ssh_user_menu_mode = SshServerMenu.SSH_SERVER_DEFAULT_MENU
+        self._username = os.getlogin()
 
     def handler(self, *args, **kwargs):
         return super().handler(*args, **kwargs)

@@ -1,3 +1,6 @@
+from enum import IntEnum, auto
+
+
 ssh_server_access_mode_menu = \
 """
 ===========================================================================================
@@ -111,3 +114,25 @@ ssh_server_system_mgmt_menu = \
 
 Q. Exit
 """
+
+
+class SshServerMenu(IntEnum):
+    SSH_SERVER_DEFAULT_MENU = 0,
+    SSH_SERVER_ACCESS_MODE_MENU = 0,
+    SSH_SERVER_MGMT_MODE_MENU = auto()
+    SSH_SERVER_PORT_ACCESS_MENU = auto()
+    SSH_SERVER_PORT_CONFIG_MENU = auto()
+    SSH_SERVER_USER_MGMT_MENU = auto()
+    SSH_SERVER_NET_MGMT_MENU = auto()
+    SSH_SERVER_SYSTEM_MGMT_MENU = auto()
+
+
+SSH_SERVER_MENU_DICT = {
+    SshServerMenu.SSH_SERVER_ACCESS_MODE_MENU: ssh_server_access_mode_menu,
+    SshServerMenu.SSH_SERVER_MGMT_MODE_MENU: ssh_server_mgmt_mode_menu,
+    SshServerMenu.SSH_SERVER_PORT_ACCESS_MENU: ssh_server_port_access_menu,
+    SshServerMenu.SSH_SERVER_PORT_CONFIG_MENU: ssh_server_port_config_menu,
+    SshServerMenu.SSH_SERVER_USER_MGMT_MENU: ssh_server_user_mgmt_menu,
+    SshServerMenu.SSH_SERVER_NET_MGMT_MENU: ssh_server_net_mgnt_menu,
+    SshServerMenu.SSH_SERVER_SYSTEM_MGMT_MENU: ssh_server_system_mgmt_menu,
+}

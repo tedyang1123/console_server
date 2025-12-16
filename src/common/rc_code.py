@@ -22,6 +22,9 @@ class RcCode(IntEnum):
     EXIT_PROCESS = auto()
     OPEN_SERIAL = auto()
     OPEN_TERMINAL = auto()
+    USER_EXIST = auto()
+    USER_NOT_FOUND = auto()
+    PERMISSION_DENIED = auto()
 
     @classmethod
     def covert_rc_to_string(cls, rc):
@@ -65,6 +68,12 @@ class RcCode(IntEnum):
             return "OPEN_SERIAL"
         elif rc == cls.OPEN_TERMINAL:
             return "OPEN_TERMINAL"
+        elif rc == cls.USER_EXIST:
+            return "USER_EXIST"
+        elif rc == cls.USER_NOT_FOUND:
+            return "USER_NOT_FOUND"
+        elif rc == cls.PERMISSION_DENIED:
+            return "PERMISSION_DENIED"
         else:
             return None
 
