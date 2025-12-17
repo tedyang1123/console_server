@@ -1,6 +1,7 @@
 import logging
 import socket
 import threading
+import time
 
 import select
 
@@ -205,8 +206,11 @@ class _SshServerSubSystemWorker(threading.Thread):
         while self._running:
             for server_handler in self._server_handler_list:
                 rc = server_handler.handler()
-                if rc != RcCode.SUCCESS:
+                if rc == RcCode.EXIT_PROCESS:
+                    server_handler.running = False
+                elif rc != RcCode.SUCCESS:
                     self._running = False
+            time.sleep(0.01)
 
 
 class SshServerPassWdAuthSubSystem(SshServerSubsystem):
@@ -223,11 +227,11 @@ class SshServerPassWdAuthSubSystem(SshServerSubsystem):
         self._next_worker_id = 0
 
     def _process_server_socket_event(self, server_port_id):
-        # Peocess the server event
+        # Process the server event
         events = self._server_epoll_dict[server_port_id].poll(timeout=self._polling_interval)
         for file_no, _ in events:
             if self._ssh_subsystem_sock[server_port_id]["socket_fd"] == file_no:
-                # A new client wants to connect the sever. Create a SSH server handler for this client
+                # A new client wants to connect the sever. Create an SSH server handler for this client
                 client_sock = self._ssh_subsystem_sock[server_port_id]["socket"].accept()
                 self._logger.warning("A new client arrived. {}".format(client_sock[0].getpeername()))
 
@@ -258,6 +262,10 @@ class SshServerPassWdAuthSubSystem(SshServerSubsystem):
                     if rc != RcCode.SUCCESS:
                         exit_flag = True
                         break
+                    server_handler.close_client()
+                    if rc != RcCode.SUCCESS:
+                        exit_flag = True
+                        break
             if exit_flag:
                 break
             
@@ -265,7 +273,7 @@ class SshServerPassWdAuthSubSystem(SshServerSubsystem):
         
     def clean_subsystem(self):
         # Close the server socket
-        rc = super.clean_subsystem()
+        rc = SshServerSubsystem.clean_subsystem(self)
         if rc != RcCode.SUCCESS:
             return rc
 
@@ -287,7 +295,7 @@ class SshServerNoneAuthSubSystem(SshServerSubsystem):
         SshServerSubsystem.__init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, thread_stop_event)
 
     def _process_server_socket_event(self, server_port_id):
-        # Peocess the server event
+        # Process the server event
         events = self._server_epoll_dict[server_port_id].poll(timeout=self._polling_interval)
         for file_no, _ in events:
             if self._ssh_subsystem_sock[server_port_id]["socket_fd"] == file_no:
@@ -313,13 +321,19 @@ class SshServerNoneAuthSubSystem(SshServerSubsystem):
             for server_handler in server_handler_list:
                 if server_handler.running and server_handler.complete:
                     rc = server_handler.handler()
+                    if rc == RcCode.EXIT_PROCESS:
+                        server_handler.running = False
+                    elif rc != RcCode.SUCCESS:
+                        break
+                elif not server_handler.running and server_handler.complete:
+                    rc = server_handler.close_client()
                     if rc != RcCode.SUCCESS:
                         break
         return RcCode.SUCCESS
 
     def clean_subsystem(self):
         # Close the server socket
-        rc = super.clean_subsystem()
+        rc = SshServerSubsystem.clean_subsystem(self)
         if rc != RcCode.SUCCESS:
             return rc
 

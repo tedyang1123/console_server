@@ -2,9 +2,9 @@ import logging
 import threading
 
 from src.common.rc_code import RcCode
-from src.ssh_server.ssh_mgr.ssh_server_account_mgr import SshServerAccountMgr
-from src.ssh_server.ssh_mgr.ssh_server_network_mgr import SshServerNetworkMgr
-from src.ssh_server.ssh_mgr.ssh_server_serial_port_mgr import SshServerSerialPortMgr
+from src.ssh_server.ssh_server_mgmt.ssh_server_account_mgr import SshServerAccountMgr
+from src.ssh_server.ssh_server_mgmt.ssh_server_network_mgr import SshServerNetworkMgr
+from src.ssh_server.ssh_server_mgmt.ssh_server_serial_port_mgr import SshServerSerialPortMgr
 from src.ssh_server.ssh_server_subsystem import SshServerPassWdAuthSubSystem, SshServerNoneAuthSubSystem
 
 MAX_PORT_GROUP = 8
@@ -23,9 +23,6 @@ class SshServer(threading.Thread):
         for i in range(8):
             self._ssh_port_list.append([])
         self._ssh_server_mgr_dict = {
-            "ssh_server_account_mgr": None,
-            "ssh_server_serial_port_mgr": None,
-            "_ssh_server_network_mgr": None
         }
         self._subsystem_stop_event = threading.Event()
         self._logger = logging.getLogger(__name__)
@@ -78,7 +75,7 @@ class SshServer(threading.Thread):
 
         # Create SSH server subsystem which verifies the user.
         self._ssh_passwd_auth_subsystem = SshServerPassWdAuthSubSystem(ip_addr, [2222], subsystem_id, 
-                                                                       48 * 3, 0.01, self._ssh_server_mgr_dict, 
+                                                                       48 * 3, 1, self._ssh_server_mgr_dict,
                                                                        self._subsystem_stop_event)
         self._ssh_passwd_auth_subsystem.start()
         subsystem_id = subsystem_id + 1
@@ -95,7 +92,7 @@ class SshServer(threading.Thread):
         for group_id in range(MAX_PORT_GROUP):
             ssh_server_none_auth_subsystem = (
                 SshServerNoneAuthSubSystem(ip_addr, self._ssh_port_list[group_id], subsystem_id,
-                                           len(self._ssh_port_list[group_id]) * 3, 0.01, self._ssh_server_mgr_dict, 
+                                           len(self._ssh_port_list[group_id]) * 3, 0.01, self._ssh_server_mgr_dict,
                                            self._subsystem_stop_event))
             ssh_server_none_auth_subsystem.start()
             self._ssh_none_auth_subsystem_list.append(ssh_server_none_auth_subsystem)

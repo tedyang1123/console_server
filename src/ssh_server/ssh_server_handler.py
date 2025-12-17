@@ -4,7 +4,9 @@ import threading
 import paramiko
 
 from src.common.rc_code import RcCode
-from src.ssh_server.ssh_server_menu import SSH_SERVER_ACCESS_MODE_MENU_DICT, SSH_SERVER_MGMT_MODE_MENU_DICT, SshServerAccessModeMenu, SshServerMgmtModeMenu
+from src.server_control.server_control import ServerControlAccessMode, ServerControlMgmtMode
+from src.server_control.server_control_menu import ServerControlMgmtModeMenu, ServerControlAccessModeMenu, \
+    SERVER_CONTROL_MGMT_MODE_MENU_DICT, SERVER_CONTROL_ACCESS_MODE_MENU_DICT
 
 
 class SshServerHandler(threading.Thread):
@@ -133,6 +135,7 @@ class SshServerPassWdAuthHandler(SshServerHandler):
         self._username = os.getlogin()
         self._ssh_menu = None
         self._login = False
+        self._server_control_mode = None
     
     def _login_system(self):
         rc, user_info_dict = self._ssh_server_mgr_dict["ssh_server_account_mgr"].get_account_info(self._username)
@@ -141,11 +144,15 @@ class SshServerPassWdAuthHandler(SshServerHandler):
 
         is_admin = user_info_dict["is_admin"]
         if is_admin:
-            self._ssh_menu = SshServerMgmtModeMenu.SSH_SERVER_MGMT_MODE_MENU
+            self._ssh_menu = ServerControlMgmtModeMenu.SERVER_CONTROL_MGMT_MODE_MENU
+            self._channel.send(SERVER_CONTROL_MGMT_MODE_MENU_DICT[self._ssh_menu])
+            self._server_control_mode = ServerControlMgmtMode(self._channel)
         else:
-            self._ssh_menu = SshServerMgmtModeMenu.SSH_SERVER_ACCESS_MODE_MENU
-        
-        self._channel.send(SSH_SERVER_MGMT_MODE_MENU_DICT[self._ssh_menu])
+            self._ssh_menu = ServerControlAccessModeMenu.SERVER_CONTROL_ACCESS_MODE_MENU
+            self._channel.send(SERVER_CONTROL_ACCESS_MODE_MENU_DICT[self._ssh_menu])
+            self._server_control_mode = ServerControlAccessMode(self._channel)
+        self._server_control_mode.init_screen()
+
         return RcCode.SUCCESS
 
     def handler(self, *args, **kwargs):
@@ -154,6 +161,9 @@ class SshServerPassWdAuthHandler(SshServerHandler):
             if rc != RcCode.SUCCESS:
                 return rc
             self._login = True
+        rc = self._server_control_mode.run_system()
+        if rc != RcCode.SUCCESS:
+            return rc
         return RcCode.SUCCESS
 
 
@@ -164,10 +174,12 @@ class SshServerNoneAuthHandler(SshServerHandler):
         self._username = os.getlogin()
         self._ssh_menu = None
         self._login = False
+        self._server_control_mode = None
     
     def _login_system(self):
-        self._ssh_menu = SshServerAccessModeMenu.SSH_SERVER_ACCESS_MODE_MENU
-        self._channel.send(SSH_SERVER_ACCESS_MODE_MENU_DICT[self._ssh_menu])
+        self._ssh_menu = ServerControlAccessModeMenu.SERVER_CONTROL_ACCESS_MODE_MENU
+        self._channel.send(SERVER_CONTROL_ACCESS_MODE_MENU_DICT[self._ssh_menu])
+        self._server_control_mode = ServerControlAccessMode(self._channel)
         return RcCode.SUCCESS
 
     def handler(self, *args, **kwargs):
@@ -176,4 +188,7 @@ class SshServerNoneAuthHandler(SshServerHandler):
             if rc != RcCode.SUCCESS:
                 return rc
             self._login = True
+        rc = self._server_control_mode.run_system()
+        if rc != RcCode.SUCCESS:
+            return rc
         return RcCode.SUCCESS

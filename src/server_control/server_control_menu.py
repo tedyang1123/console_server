@@ -1,7 +1,7 @@
 from enum import IntEnum, auto
 
 
-ssh_server_access_mode_menu = \
+server_control_access_mode_menu = \
 " \
 ===========================================================================================\r\n \
 : Welcome to Consle Server\r\n \
@@ -12,7 +12,7 @@ ssh_server_access_mode_menu = \
 Q. Exit\r\n \
 "
 
-ssh_server_mgmt_mode_menu = \
+server_control_mgmt_mode_menu = \
 " \
 ===========================================================================================\r\n \
 : Welcome to Consle Server\r\n \
@@ -26,7 +26,7 @@ ssh_server_mgmt_mode_menu = \
 Q. Exit\r\n \
 "
 
-ssh_server_port_access_menu = \
+server_control_port_access_menu = \
 " \
 ===========================================================================================\r\n \
 : Welcome to Consle Server\r\n \
@@ -59,7 +59,7 @@ ssh_server_port_access_menu = \
 Q. Exit\r\n \
 " \
 
-ssh_server_port_config_menu = \
+server_control_port_config_menu = \
 " \
 ===========================================================================================\r\n \
 : Welcome to Consle Server\r\n \
@@ -71,7 +71,7 @@ ssh_server_port_config_menu = \
 Q. Exit\r\n \
 " \
 
-ssh_server_user_mgmt_menu = \
+server_control_user_mgmt_menu = \
 " \
 ===========================================================================================\r\n \
 : Welcome to Consle Server\r\n \
@@ -86,7 +86,7 @@ ssh_server_user_mgmt_menu = \
 Q. Exit\r\n \
 "
 
-ssh_server_network_mgnt_menu = \
+server_control_network_mgnt_menu = \
 " \
 ===========================================================================================\r\n \
 : Welcome to Consle Server\r\n \
@@ -101,7 +101,7 @@ ssh_server_network_mgnt_menu = \
 Q. Exit\r\n \
 "
 
-ssh_server_system_mgmt_menu = \
+server_control_system_mgmt_menu = \
 " \
 ===========================================================================================\r\n \
 : Welcome to Consle Server\r\n \
@@ -116,31 +116,32 @@ Q. Exit\r\n \
 "
 
 
-class SshServerAccessModeMenu(IntEnum):
-    SSH_SERVER_ACCESS_MODE_MENU = 0
+class ServerControlAccessModeMenu(IntEnum):
+    SERVER_CONTROL_ACCESS_MODE_MENU = 0
 
 
-SSH_SERVER_ACCESS_MODE_MENU_DICT = {
-    SshServerAccessModeMenu.SSH_SERVER_ACCESS_MODE_MENU: ssh_server_access_mode_menu
+SERVER_CONTROL_ACCESS_MODE_MENU_DICT = {
+    ServerControlAccessModeMenu.SERVER_CONTROL_ACCESS_MODE_MENU: server_control_access_mode_menu
 }
 
 
-class SshServerMgmtModeMenu(IntEnum):
-    SSH_SERVER_ACCESS_MODE_MENU = 0,
-    SSH_SERVER_MGMT_MODE_MENU = auto()
-    SSH_SERVER_PORT_ACCESS_MENU = auto()
-    SSH_SERVER_PORT_CONFIG_MENU = auto()
-    SSH_SERVER_USER_MGMT_MENU = auto()
-    SSH_SERVER_NET_MGMT_MENU = auto()
-    SSH_SERVER_SYSTEM_MGMT_MENU = auto()
+class ServerControlMgmtModeMenu(IntEnum):
+    SERVER_CONTROL_MGMT_MODE_MENU = 0
+    SERVER_CONTROL_PORT_ACCESS_MENU = auto()
+    SERVER_CONTROL_PORT_CONFIG_MENU = auto()
+    SERVER_CONTROL_USER_MGMT_MENU = auto()
+    SERVER_CONTROL_NET_MGMT_MENU = auto()
+    SERVER_CONTROL_SYSTEM_MGMT_MENU = auto()
 
 
-SSH_SERVER_MGMT_MODE_MENU_DICT = {
-    SshServerMgmtModeMenu.SSH_SERVER_ACCESS_MODE_MENU: ssh_server_access_mode_menu,
-    SshServerMgmtModeMenu.SSH_SERVER_MGMT_MODE_MENU: ssh_server_mgmt_mode_menu,
-    SshServerMgmtModeMenu.SSH_SERVER_PORT_ACCESS_MENU: ssh_server_port_access_menu,
-    SshServerMgmtModeMenu.SSH_SERVER_PORT_CONFIG_MENU: ssh_server_port_config_menu,
-    SshServerMgmtModeMenu.SSH_SERVER_USER_MGMT_MENU: ssh_server_user_mgmt_menu,
-    SshServerMgmtModeMenu.SSH_SERVER_NET_MGMT_MENU: ssh_server_network_mgnt_menu,
-    SshServerMgmtModeMenu.SSH_SERVER_SYSTEM_MGMT_MENU: ssh_server_system_mgmt_menu,
+SERVER_CONTROL_MGMT_MODE_MENU_DICT = {
+    ServerControlMgmtModeMenu.SERVER_CONTROL_MGMT_MODE_MENU: server_control_mgmt_mode_menu,
+    ServerControlMgmtModeMenu.SERVER_CONTROL_PORT_ACCESS_MENU: server_control_port_access_menu,
+    ServerControlMgmtModeMenu.SERVER_CONTROL_PORT_CONFIG_MENU: server_control_port_config_menu,
+    ServerControlMgmtModeMenu.SERVER_CONTROL_USER_MGMT_MENU: server_control_user_mgmt_menu,
+    ServerControlMgmtModeMenu.SERVER_CONTROL_NET_MGMT_MENU: server_control_network_mgnt_menu,
+    ServerControlMgmtModeMenu.SERVER_CONTROL_SYSTEM_MGMT_MENU: server_control_system_mgmt_menu,
 }
+
+
+SERVER_CONTROL_PROMPT = ">> "
