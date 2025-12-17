@@ -4,7 +4,7 @@ import threading
 import paramiko
 
 from src.common.rc_code import RcCode
-from src.ssh_server.ssh_server_menu import SshServerMenu
+from src.ssh_server.ssh_server_menu import SSH_SERVER_ACCESS_MODE_MENU_DICT, SSH_SERVER_MGMT_MODE_MENU_DICT, SshServerAccessModeMenu, SshServerMgmtModeMenu
 
 
 class SshServerHandler(threading.Thread):
@@ -93,20 +93,20 @@ class SshServerHandler(threading.Thread):
         raise NotImplemented
 
     def run(self):
-        self._logger.info("Create transport...")
+        self._logger.warning("Create transport...")
         rc = self.create_transporter()
         if rc != RcCode.SUCCESS:
             self._logger.warning("Create transport fail...")
             return
 
-        self._logger.info("Enable ssh service...")
+        self._logger.warning("Enable ssh service...")
         rc = self.serve_client()
         if rc != RcCode.SUCCESS:
             self._logger.warning("Enable ssh service fail...")
             self.close_client()
             return
 
-        self._logger.info("Open SSH channel...")
+        self._logger.warning("Open SSH channel...")
         rc = self.open_channel()
         if rc != RcCode.SUCCESS:
             self._logger.warning("Open SSH channel fail...")
@@ -114,32 +114,66 @@ class SshServerHandler(threading.Thread):
             return
 
         self.init = False
-        self._logger.info("Wait ssh verification...")
+        self._logger.warning("Wait ssh verification...")
         self._server.thread_event.wait(10)
         if not self._server.thread_event.is_set():
             self._logger.warning("Wait ssh verification fail...")
             self.close_client()
             return
 
-        self._logger.info("SSH client init DONE !!")
+        self._logger.warning("SSH client init DONE !!")
         self.complete = True
 
 
 class SshServerPassWdAuthHandler(SshServerHandler):
-    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
-        SshServerHandler.__init__(client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
-        self._ssh_user_menu_mode = SshServerMenu.SSH_SERVER_DEFAULT_MENU
+    def __init__(self, ssh_server_mgr_dict, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
+        self._ssh_server_mgr_dict = ssh_server_mgr_dict
+        SshServerHandler.__init__(self, client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
+        self._ssh_user_menu_mode = None
         self._username = os.getlogin()
+        self._ssh_menu = None
+        self._login = False
+    
+    def _login_system(self):
+        rc, user_info_dict = self._ssh_server_mgr_dict["ssh_server_account_mgr"].get_account_info(self._username)
+        if rc != RcCode.SUCCESS:
+            return rc
+
+        is_admin = user_info_dict["is_admin"]
+        if is_admin:
+            self._ssh_menu = SshServerMgmtModeMenu.SSH_SERVER_MGMT_MODE_MENU
+        else:
+            self._ssh_menu = SshServerMgmtModeMenu.SSH_SERVER_ACCESS_MODE_MENU
+        
+        self._channel.send(SSH_SERVER_MGMT_MODE_MENU_DICT[self._ssh_menu])
+        return RcCode.SUCCESS
 
     def handler(self, *args, **kwargs):
-        return super().handler(*args, **kwargs)
+        if not self._login:
+            rc = self._login_system()
+            if rc != RcCode.SUCCESS:
+                return rc
+            self._login = True
+        return RcCode.SUCCESS
 
 
 class SshServerNoneAuthHandler(SshServerHandler):
-    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
-        SshServerHandler.__init__(client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
-        self._ssh_user_menu_mode = SshServerMenu.SSH_SERVER_DEFAULT_MENU
+    def __init__(self, ssh_server_mgr_dict, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
+        SshServerHandler.__init__(self, client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
+        self._ssh_user_menu_mode = None
         self._username = os.getlogin()
+        self._ssh_menu = None
+        self._login = False
+    
+    def _login_system(self):
+        self._ssh_menu = SshServerAccessModeMenu.SSH_SERVER_ACCESS_MODE_MENU
+        self._channel.send(SSH_SERVER_ACCESS_MODE_MENU_DICT[self._ssh_menu])
+        return RcCode.SUCCESS
 
     def handler(self, *args, **kwargs):
-        return super().handler(*args, **kwargs)
+        if not self._login:
+            rc = self._login_system()
+            if rc != RcCode.SUCCESS:
+                return rc
+            self._login = True
+        return RcCode.SUCCESS

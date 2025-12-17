@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+
+from src.ssh_server.ssh_server import SshServer
+
+
+def main():
+    server = SshServer()
+    server.start()
+    server.join()
+
+
+if __name__ == '__main__':
+    main()

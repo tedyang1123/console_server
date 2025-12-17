@@ -2,122 +2,130 @@ from enum import IntEnum, auto
 
 
 ssh_server_access_mode_menu = \
-"""
-===========================================================================================
-: Welcome to Consle Server
-===========================================================================================
-1. Port Accesss
-2. Port Configureation
-
-Q. Exit
-"""
+" \
+===========================================================================================\r\n \
+: Welcome to Consle Server\r\n \
+===========================================================================================\r\n \
+1. Port Accesss\r\n \
+2. Port Configureation\r\n \
+\r\n \
+Q. Exit\r\n \
+"
 
 ssh_server_mgmt_mode_menu = \
-"""
-===========================================================================================
-: Welcome to Consle Server
-===========================================================================================
-1. Port Accesss
-2. Port Configureation
-3. User Management
-4. Network Management
-5. Direct Port Access By SSH
-6. Direct Port Access By Telnet
-7. Direct Port Access By TCP
-8. System Management
-
-Q. Exit
-"""
+" \
+===========================================================================================\r\n \
+: Welcome to Consle Server\r\n \
+===========================================================================================\r\n \
+1. Port Accesss\r\n \
+2. Port Configureation\r\n \
+3. User Management\r\n \
+4. Network Management\r\n \
+5. System Management\r\n \
+\r\n \
+Q. Exit\r\n \
+"
 
 ssh_server_port_access_menu = \
-"""
-===========================================================================================
-: Welcome to Consle Server
-===========================================================================================
- 1. COM1                                25. COM25
- 2. COM2                                26. COM26
- 3. COM3                                27. COM27
- 4. COM4                                28. COM28
- 5. COM5                                29. COM29
- 6. COM6                                30. COM30
- 7. COM7                                31. COM31
- 8. COM8                                32. COM32
- 9. COM9                                33. COM33
-10. COM10                               34. COM34
-11. COM11                               35. COM35
-12. COM12                               36. COM36
-13. COM13                               37. COM37
-14. COM14                               38. COM38
-15. COM15                               39. COM39
-16. COM16                               40. COM40
-17. COM17                               41. COM41
-18. COM18                               42. COM42
-19. COM19                               43. COM43
-20. COM20                               44. COM44
-21. COM21                               45. COM45
-22. COM22                               46. COM46
-23. COM23                               47. COM47
-24. COM24                               48. COM48
-
-Q. Exit
-"""
+" \
+===========================================================================================\r\n \
+: Welcome to Consle Server\r\n \
+===========================================================================================\r\n \
+ 1. COM1                                25. COM25\r\n \
+ 2. COM2                                26. COM26\r\n \
+ 3. COM3                                27. COM27\r\n \
+ 4. COM4                                28. COM28\r\n \
+ 5. COM5                                29. COM29\r\n \
+ 6. COM6                                30. COM30\r\n \
+ 7. COM7                                31. COM31\r\n \
+ 8. COM8                                32. COM32\r\n \
+ 9. COM9                                33. COM33\r\n \
+10. COM10                               34. COM34\r\n \
+11. COM11                               35. COM35\r\n \
+12. COM12                               36. COM36\r\n \
+13. COM13                               37. COM37\r\n \
+14. COM14                               38. COM38\r\n \
+15. COM15                               39. COM39\r\n \
+16. COM16                               40. COM40\r\n \
+17. COM17                               41. COM41\r\n \
+18. COM18                               42. COM42\r\n \
+19. COM19                               43. COM43\r\n \
+20. COM20                               44. COM44\r\n \
+21. COM21                               45. COM45\r\n \
+22. COM22                               46. COM46\r\n \
+23. COM23                               47. COM47\r\n \
+24. COM24                               48. COM48\r\n \
+\r\n \
+Q. Exit\r\n \
+" \
 
 ssh_server_port_config_menu = \
-"""
-===========================================================================================
-: Welcome to Consle Server
-===========================================================================================
-1. Configure baud rate
-2. Configre Descritpion
-3. Show Port information
-
-Q. Exit
-"""
+" \
+===========================================================================================\r\n \
+: Welcome to Consle Server\r\n \
+===========================================================================================\r\n \
+1. Configure baud rate\r\n \
+2. Configre Descritpion\r\n \
+3. Show Port information\r\n \
+\r\n \
+Q. Exit\r\n \
+" \
 
 ssh_server_user_mgmt_menu = \
-"""
-===========================================================================================
-: Welcome to Consle Server
-===========================================================================================
-1. Create User Account
-2. Delete User Account
-3. COnfigure Port Access
-4. Configure RADIUS
-5. Configure TACACS+
-6. Show User Information
+" \
+===========================================================================================\r\n \
+: Welcome to Consle Server\r\n \
+===========================================================================================\r\n \
+1. Create User Account\r\n \
+2. Delete User Account\r\n \
+3. COnfigure Port Access\r\n \
+4. Configure RADIUS\r\n \
+5. Configure TACACS+\r\n \
+6. Show User Information\r\n \
+\r\n \
+Q. Exit\r\n \
+"
 
-Q. Exit
-"""
-
-ssh_server_net_mgnt_menu = \
-"""
-===========================================================================================
-: Welcome to Consle Server
-===========================================================================================
-1. Setup IP Address
-2. Setup SSH Server Port
-3. Show Network Information
-
-Q. Exit
-"""
+ssh_server_network_mgnt_menu = \
+" \
+===========================================================================================\r\n \
+: Welcome to Consle Server\r\n \
+===========================================================================================\r\n \
+1. Setup IP Address\r\n \
+2. Setup SSH Server Port\r\n \
+3. Show Network Information\r\n \
+4. Direct Port Access By SSH\r\n \
+5. Direct Port Access By Telnet\r\n \
+6. Direct Port Access By TCP\r\n \
+\r\n \
+Q. Exit\r\n \
+"
 
 ssh_server_system_mgmt_menu = \
-"""
-===========================================================================================
-: Welcome to Consle Server
-===========================================================================================
-1. Setup System Log
-2. Restore Default Configuration
-3. Show System Configuration
-4. Show System Log
-4. Show System Information
+" \
+===========================================================================================\r\n \
+: Welcome to Consle Server\r\n \
+===========================================================================================\r\n \
+1. Setup System Log\r\n \
+2. Restore Default Configuration\r\n \
+3. Show System Configuration\r\n \
+4. Show System Log\r\n \
+4. Show System Information\r\n \
+\r\n \
+Q. Exit\r\n \
+"
 
-Q. Exit
-"""
+
+class SshServerAccessModeMenu(IntEnum):
+    SSH_SERVER_ACCESS_MODE_MENU = 0
 
 
-class SshServerMenu(IntEnum):
-    SSH_SERVER_DEFAULT_MENU = 0,
+SSH_SERVER_ACCESS_MODE_MENU_DICT = {
+    SshServerAccessModeMenu.SSH_SERVER_ACCESS_MODE_MENU: ssh_server_access_mode_menu
+}
+
+
+class SshServerMgmtModeMenu(IntEnum):
     SSH_SERVER_ACCESS_MODE_MENU = 0,
     SSH_SERVER_MGMT_MODE_MENU = auto()
     SSH_SERVER_PORT_ACCESS_MENU = auto()
@@ -127,12 +135,12 @@ class SshServerMenu(IntEnum):
     SSH_SERVER_SYSTEM_MGMT_MENU = auto()
 
 
-SSH_SERVER_MENU_DICT = {
-    SshServerMenu.SSH_SERVER_ACCESS_MODE_MENU: ssh_server_access_mode_menu,
-    SshServerMenu.SSH_SERVER_MGMT_MODE_MENU: ssh_server_mgmt_mode_menu,
-    SshServerMenu.SSH_SERVER_PORT_ACCESS_MENU: ssh_server_port_access_menu,
-    SshServerMenu.SSH_SERVER_PORT_CONFIG_MENU: ssh_server_port_config_menu,
-    SshServerMenu.SSH_SERVER_USER_MGMT_MENU: ssh_server_user_mgmt_menu,
-    SshServerMenu.SSH_SERVER_NET_MGMT_MENU: ssh_server_net_mgnt_menu,
-    SshServerMenu.SSH_SERVER_SYSTEM_MGMT_MENU: ssh_server_system_mgmt_menu,
+SSH_SERVER_MGMT_MODE_MENU_DICT = {
+    SshServerMgmtModeMenu.SSH_SERVER_ACCESS_MODE_MENU: ssh_server_access_mode_menu,
+    SshServerMgmtModeMenu.SSH_SERVER_MGMT_MODE_MENU: ssh_server_mgmt_mode_menu,
+    SshServerMgmtModeMenu.SSH_SERVER_PORT_ACCESS_MENU: ssh_server_port_access_menu,
+    SshServerMgmtModeMenu.SSH_SERVER_PORT_CONFIG_MENU: ssh_server_port_config_menu,
+    SshServerMgmtModeMenu.SSH_SERVER_USER_MGMT_MENU: ssh_server_user_mgmt_menu,
+    SshServerMgmtModeMenu.SSH_SERVER_NET_MGMT_MENU: ssh_server_network_mgnt_menu,
+    SshServerMgmtModeMenu.SSH_SERVER_SYSTEM_MGMT_MENU: ssh_server_system_mgmt_menu,
 }
