@@ -1,4 +1,3 @@
-import logging
 import socket
 import threading
 import time
@@ -44,9 +43,6 @@ class SshServerSubsystem(threading.Thread, LoggerSystem):
         #       ssh_port_id: [ssh_server_handler1, ...]
         # }
         self._server_handler_dict = {}
-
-        # logger
-        self._logger = logging.getLogger(__name__ + " {}".format(self._subsystem_id))
 
     def _init_server_socket(self, port_id):
         try:
@@ -163,9 +159,10 @@ class SshServerSubsystem(threading.Thread, LoggerSystem):
             self._logger.error("Socket error occurs.")
 
 
-class _SshServerSubSystemWorker(threading.Thread):
-    def __init__(self):
+class _SshServerSubSystemWorker(threading.Thread, LoggerSystem):
+    def __init__(self, work_id):
         threading.Thread.__init__(self)
+        LoggerSystem.__init__(self, "ssh_work_{}".format(work_id))
         self._server_handler_list = []
         self._server_handler_list_lock = threading.Lock()
         self._running = False
@@ -184,27 +181,35 @@ class _SshServerSubSystemWorker(threading.Thread):
         self._running = True
         while self._running:
             for server_handler in self._server_handler_list:
-                rc = server_handler.handler()
-                if rc == RcCode.EXIT_PROCESS:
-                    server_handler.shutdown = True
-                elif rc != RcCode.SUCCESS:
-                    self._running = False
+                if server_handler.shutdown:
+                    if not server_handler.clear:
+                        self._logger.info("server handler {} has stopped.".format(server_handler.handler_id))
+                        server_handler.close_client()
+                elif server_handler.running and server_handler.complete:
+                    rc = server_handler.handler()
+                    if rc == RcCode.EXIT_PROCESS:
+                        server_handler.shutdown = True
+                    elif rc != RcCode.SUCCESS:
+                        self._logger.error("server handler {} process event fail".format(server_handler.handler_id))
+                        break
             time.sleep(0.01)
 
 
 class SshServerPassWdAuthSubSystem(SshServerSubsystem):
-    def __init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, polling_interval, ssh_server_mgr_dict, thread_stop_event):
+    def __init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, polling_interval,
+                 ssh_server_mgr_dict, thread_stop_event):
         self._ssh_key_handler = SshKeyHandler(server_pri_key_file='~/.ssh/id_rsa')
         self._polling_interval = polling_interval
         self._ssh_server_mgr_dict = ssh_server_mgr_dict
         SshServerSubsystem.__init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, thread_stop_event)
         LoggerSystem.__init__(self,"ssh_passwd_auth_subsystem_{}".format(subsystem_id))
         self._worker_list = []
-        for _ in range(8):
-            worker = _SshServerSubSystemWorker()
+        for work_id in range(8):
+            worker = _SshServerSubSystemWorker(work_id)
             worker.start()
             self._worker_list.append(worker)
         self._next_worker_id = 0
+        self._handler_num = 0
 
     def _process_server_socket_event(self, server_port_id):
         # Process the server event
@@ -216,11 +221,13 @@ class SshServerPassWdAuthSubSystem(SshServerSubsystem):
                 self._logger.warning("A new client arrived. {}".format(client_sock[0].getpeername()))
 
                 # Create the SSH server handler to execute SSH connection
-                server_handler = SshServerPassWdAuthHandler(self._ssh_server_mgr_dict, 
+                server_handler = SshServerPassWdAuthHandler(self._handler_num,
+                                                            self._ssh_server_mgr_dict,
                                                             client_sock[0],
                                                             self._ssh_key_handler,
                                                             ssh_authenticator_server_class=SshServerPassWdAuthenticator)
                 server_handler.start()
+                self._handler_num = self._handler_num + 1
                 self._logger.warning("A new thread to service the client {}".format(client_sock[0].getpeername()))
 
                 # Save the SSH server handler and wait SSH connection completely
@@ -263,7 +270,8 @@ class SshServerPassWdAuthSubSystem(SshServerSubsystem):
 
 
 class SshServerNoneAuthSubSystem(SshServerSubsystem):
-    def __init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, polling_interval, ssh_server_mgr_dict, thread_stop_event):
+    def __init__(self, ssh_ip_addr, ssh_port_list, subsystem_id, num_of_client, polling_interval,
+                 ssh_server_mgr_dict, thread_stop_event):
         self._ssh_key_handler = SshKeyHandler(server_pri_key_file='~/.ssh/id_rsa')
         self._polling_interval = polling_interval
         self._ssh_server_mgr_dict = ssh_server_mgr_dict

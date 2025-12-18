@@ -19,6 +19,8 @@ class RcCode(IntEnum):
     DEVICE_NOT_FOUND = auto()
     DATA_NOT_READY = auto()
     DEVICE_EXIST = auto()
+    CHANGE_MENU = auto()
+    EXIT_MENU = auto()
     EXIT_PROCESS = auto()
     OPEN_SERIAL_PORT = auto()
     CLOSE_SERIAL_PORT = auto()
@@ -62,6 +64,10 @@ class RcCode(IntEnum):
             return "DATA_NOT_READY"
         elif rc == cls.DEVICE_EXIST:
             return "DEVICE_EXIST"
+        elif rc == cls.CHANGE_MENU:
+            return "CHANGE_MODE"
+        elif rc == cls.EXIT_MENU:
+            return "EXIT_MENU"
         elif rc == cls.EXIT_PROCESS:
             return "EXIT_PROCESS"
         elif rc == cls.OPEN_SERIAL_PORT:

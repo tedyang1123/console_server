@@ -5,6 +5,9 @@ from src.common.rc_code import RcCode
 
 class LoggerSystem:
     def __init__(self, loger_name):
+        self._file_handler = None
+        self._screen_handler = None
+        self._formatter = None
         self._logger_name = loger_name
         self._logger = logging.getLogger(self._logger_name)
     

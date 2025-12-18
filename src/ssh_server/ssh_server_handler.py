@@ -1,13 +1,12 @@
-import logging
 import os
 import threading
 import paramiko
 
 from src.common.logger_system import LoggerSystem
 from src.common.rc_code import RcCode
-from src.server_control.server_control import ServerControlAccessMode, ServerControlMgmtMode, ServerControlSerialAccessMode
-from src.server_control.server_control_menu import ServerControlMgmtModeMenu, ServerControlAccessModeMenu, \
-    SERVER_CONTROL_MGMT_MODE_MENU_DICT, SERVER_CONTROL_ACCESS_MODE_MENU_DICT
+from src.server_control.server_control import ServerControlAccessMode, ServerControlMgmtMode, \
+    ServerControlSerialAccessMode, ServerControlPortAccessMode
+from src.server_control.server_control_menu import ServerControlMenu, SERVER_CONTROL_MENU_DICT
 
 
 class SshServerHandler(threading.Thread, LoggerSystem):
@@ -110,66 +109,49 @@ class SshServerHandler(threading.Thread, LoggerSystem):
 
 
 class SshServerPassWdAuthHandler(SshServerHandler):
-    def __init__(self, ssh_server_mgr_dict, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
+    def __init__(self, handler_id, ssh_server_mgr_dict, client_sock, ssh_key_handler, channel_timeout=30,
+                 ssh_authenticator_server_class=None):
+        self.handler_id = handler_id
         self._ssh_server_mgr_dict = ssh_server_mgr_dict
         SshServerHandler.__init__(self, client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
         LoggerSystem.__init__(self, "ssh_passwd_auth_handler")
         self._ssh_user_menu_mode = None
         self._username = os.getlogin()
-        self._ssh_menu = None
+        self._current_menu = None
         self._login = False
         self._server_control_mode = None
+        self._is_admin = False
+        self._reinit = False
     
-    def _login_system(self):
+    def _login_system(self, reinit=False):
         rc, user_info_dict = self._ssh_server_mgr_dict["ssh_server_account_mgr"].get_account_info(self._username)
         if rc != RcCode.SUCCESS:
+            self._logger.error("Can not get the number of the serial port on this system.")
             return rc
 
-        is_admin = user_info_dict["is_admin"]
-        if is_admin:
-            self._ssh_menu = ServerControlMgmtModeMenu.SERVER_CONTROL_MGMT_MODE_MENU
-            self._channel.send(SERVER_CONTROL_MGMT_MODE_MENU_DICT[self._ssh_menu])
-            self._server_control_mode = ServerControlMgmtMode(self._channel)
+        self._is_admin = user_info_dict["is_admin"]
+        if self._is_admin:
+            if not self._reinit:
+                self._current_menu = ServerControlMenu.SERVER_CONTROL_MGMT_MODE_MENU
+            self._logger.warning("Current menu is {}".format(self._current_menu))
+            self._channel.send(SERVER_CONTROL_MENU_DICT[self._current_menu])
+            if not self._reinit:
+                self._server_control_mode = ServerControlMgmtMode(self._channel)
         else:
-            self._ssh_menu = ServerControlAccessModeMenu.SERVER_CONTROL_ACCESS_MODE_MENU
-            self._channel.send(SERVER_CONTROL_ACCESS_MODE_MENU_DICT[self._ssh_menu])
-            self._server_control_mode = ServerControlAccessMode(self._channel)
-        self._server_control_mode.init_control_mode()
+            if not self._reinit:
+                self._current_menu = ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU
+            self._channel.send(SERVER_CONTROL_MENU_DICT[self._current_menu])
+            if not self._reinit:
+                self._server_control_mode = ServerControlAccessMode(self._channel)
 
-        self._logger.warning("New Clinet is login the SSH Password server")
-        return RcCode.SUCCESS
-
-    def handler(self, *args, **kwargs):
-        if not self._login:
-            rc = self._login_system()
-            if rc != RcCode.SUCCESS:
-                return rc
-            self._login = True
-        rc = self._server_control_mode.run_system()
-        if rc != RcCode.SUCCESS:
-            return rc
-        return RcCode.SUCCESS
-
-
-class SshServerNoneAuthHandler(SshServerHandler):
-    def __init__(self, handler_id, ssh_server_mgr_dict, ssh_server_port, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
-        self._ssh_server_mgr_dict = ssh_server_mgr_dict
-        self.handler_id = handler_id
-        self._ssh_server_port = ssh_server_port
-        SshServerHandler.__init__(self, client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
-        LoggerSystem.__init__(self, "ssh_none_auth_handler-{}".format(handler_id))
-        self._username = os.getlogin()
-        self._login = False
-        self._server_control_mode = None
-    
-    def _login_system(self):
-        serial_port = self._ssh_server_mgr_dict["ssh_server_network_mgr"].get_serial_port_by_ssh_port(self._ssh_server_port)
-        self._server_control_mode = ServerControlSerialAccessMode(self.handler_id, self._channel, serial_port)
         rc = self._server_control_mode.init_control_mode()
         if rc != RcCode.SUCCESS:
-            self._logger.error("Init the log system and socket fail. rc: {}".format(rc))
+            self._logger.warning("Init control mode fail")
             return rc
-        self._logger.info("New Clinet is login the SSH No Password server. Open serial port {}. rc: {}".format(serial_port, rc))
+
+        self._reinit = False
+
+        self._logger.warning("New Clinet is login the SSH Password server")
         return RcCode.SUCCESS
 
     def handler(self, *args, **kwargs):
@@ -180,6 +162,115 @@ class SshServerNoneAuthHandler(SshServerHandler):
                 return rc
             self._login = True
         rc = self._server_control_mode.run_system()
+        if rc == RcCode.CHANGE_MENU:
+            if self._current_menu is None:
+                self._logger.warning("No next menu available")
+                return RcCode.DATA_NOT_FOUND
+            # Change the mode
+            if self._is_admin:
+                match self._server_control_mode.next_menu:
+                    case ServerControlMenu.SERVER_CONTROL_MGMT_MODE_MENU:
+                        self._logger.info("Change to Mgmt mode menu")
+                        self._current_menu = self._server_control_mode.next_menu
+                        self._server_control_mode = ServerControlMgmtMode(self._channel)
+                    case ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU:
+                        self._logger.info("Change to Port Access mode menu")
+                        num_of_serial_port = self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port()
+                        self._current_menu = self._server_control_mode.next_menu
+                        self._server_control_mode = ServerControlPortAccessMode(self._channel, num_of_serial_port)
+                    case ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU:
+                        self._logger.info("Change to Port Access mode menu")
+                        self._current_menu = self._server_control_mode.next_menu
+                        serial_port_id = self._server_control_mode.serial_port_id
+                        self._server_control_mode = ServerControlSerialAccessMode(self.handler_id, self._channel, serial_port_id)
+            else:
+                match self._server_control_mode.next_menu:
+                    case ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU:
+                        self._logger.info("Change to Access mode menu")
+                        self._current_menu = self._server_control_mode.next_menu
+                        self._server_control_mode = ServerControlAccessMode(self._channel)
+                    case ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU:
+                        self._logger.info("Change to Port Access mode menu")
+                        self._current_menu = self._server_control_mode.next_menu
+                        num_of_serial_port = self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port()
+                        self._server_control_mode = ServerControlPortAccessMode(self._channel, num_of_serial_port)
+                    case ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU:
+                        self._logger.info("Change to Serial Port Access mode menu")
+                        self._current_menu = self._server_control_mode.next_menu
+                        serial_port_id = self._server_control_mode.serial_port_id
+                        self._server_control_mode = ServerControlSerialAccessMode(self.handler_id, self._channel, serial_port_id)
+            self._reinit = True
+            self._login = False
+        elif rc == RcCode.EXIT_MENU:
+            if self._is_admin:
+                match self._current_menu:
+                    case ServerControlMenu.SERVER_CONTROL_MGMT_MODE_MENU:
+                        # The top menu
+                        self._logger.info("Exit Mgmt mode menu")
+                        return RcCode.EXIT_PROCESS
+                    case ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU:
+                        self._logger.info("Exit Port Access mode menu, into the Mgmt mode menu")
+                        self._server_control_mode = ServerControlMgmtMode(self._channel)
+                        self._current_menu = ServerControlMenu.SERVER_CONTROL_MGMT_MODE_MENU
+                    case ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU:
+                        self._logger.info("Exit Serial Port mode menu, into the Port Access mode menu")
+                        num_of_serial_port = self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port()
+                        self._server_control_mode = ServerControlPortAccessMode(self._channel, num_of_serial_port)
+                        self._current_menu = ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU
+            else:
+                match self._current_menu:
+                    case ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU:
+                        # The top menu
+                        self._logger.info("Exit Access mode menu")
+                        return RcCode.EXIT_PROCESS
+                    case ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU:
+                        self._logger.info("Exit Port Access mode menu, into the Access mode menu")
+                        self._server_control_mode = ServerControlAccessMode(self._channel)
+                        self._current_menu = ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU
+                    case ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU:
+                        self._logger.info("Exit Serial Port mode menu, into the Port Access mode menu")
+                        num_of_serial_port = self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port()
+                        self._server_control_mode = ServerControlPortAccessMode(self._channel, num_of_serial_port)
+                        self._current_menu = ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU
+            self._reinit = True
+            self._login = False
+        return RcCode.SUCCESS
+
+
+class SshServerNoneAuthHandler(SshServerHandler):
+    def __init__(self, handler_id, ssh_server_mgr_dict, ssh_server_port, client_sock, ssh_key_handler,
+                 channel_timeout=30, ssh_authenticator_server_class=None):
+        self.handler_id = handler_id
+        self._ssh_server_mgr_dict = ssh_server_mgr_dict
+        self._ssh_server_port = ssh_server_port
+        SshServerHandler.__init__(self, client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
+        LoggerSystem.__init__(self, "ssh_none_auth_handler-{}".format(handler_id))
+        self._username = os.getlogin()
+        self._login = False
+        self._server_control_mode = None
+    
+    def _login_system(self):
+        serial_port = (
+            self._ssh_server_mgr_dict["ssh_server_network_mgr"].get_serial_port_by_ssh_port(self._ssh_server_port))
+        self._server_control_mode = ServerControlSerialAccessMode(self.handler_id, self._channel, serial_port)
+        rc = self._server_control_mode.init_control_mode()
+        if rc != RcCode.SUCCESS:
+            self._logger.error("Init the log system and socket fail. rc: {}".format(rc))
+            return rc
+        self._logger.info("New Clinet is login the SSH No Password server. "
+                          "Open serial port {}. rc: {}".format(serial_port, rc))
+        return RcCode.SUCCESS
+
+    def handler(self, *args, **kwargs):
+        if not self._login:
+            rc = self._login_system()
+            if rc != RcCode.SUCCESS:
+                self._logger.error("login system fail. rc: {}".format(rc))
+                return rc
+            self._login = True
+        rc = self._server_control_mode.run_system()
+        if rc == RcCode.EXIT_MENU:
+            rc = RcCode.EXIT_PROCESS
         if rc != RcCode.SUCCESS:
             self._logger.error("Run system fail. rc: {}".format(rc))
             return rc

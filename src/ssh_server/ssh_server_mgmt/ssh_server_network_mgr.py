@@ -1,8 +1,10 @@
+from src.common.logger_system import LoggerSystem
 from src.common.rc_code import RcCode
 
 
-class SshServerNetworkMgr:
+class SshServerNetworkMgr(LoggerSystem):
     def __init__(self, num_of_ssh_port):
+        LoggerSystem.__init__(self, "ssh_network_mgr")
         self._ssh_port_direct_port_dict = {}
         for ssh_port_id in range(num_of_ssh_port):
             self._ssh_port_direct_port_dict[ssh_port_id] = 2300 + ssh_port_id

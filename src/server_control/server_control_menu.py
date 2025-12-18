@@ -117,17 +117,17 @@ Q. Exit\r\n \
 
 
 class ServerControlAccessModeMenu(IntEnum):
-    SERVER_CONTROL_ACCESS_MODE_MENU = 0
+    SERVER_CONTROL_PORT_ACCESS_MENU = 1
+    SERVER_CONTROL_PORT_CONFIG_MENU = auto()
 
 
 SERVER_CONTROL_ACCESS_MODE_MENU_DICT = {
-    ServerControlAccessModeMenu.SERVER_CONTROL_ACCESS_MODE_MENU: server_control_access_mode_menu
+    ServerControlAccessModeMenu.SERVER_CONTROL_PORT_ACCESS_MENU: server_control_port_access_menu
 }
 
 
 class ServerControlMgmtModeMenu(IntEnum):
-    SERVER_CONTROL_MGMT_MODE_MENU = 0
-    SERVER_CONTROL_PORT_ACCESS_MENU = auto()
+    SERVER_CONTROL_PORT_ACCESS_MENU = 1
     SERVER_CONTROL_PORT_CONFIG_MENU = auto()
     SERVER_CONTROL_USER_MGMT_MENU = auto()
     SERVER_CONTROL_NET_MGMT_MENU = auto()
@@ -135,12 +135,34 @@ class ServerControlMgmtModeMenu(IntEnum):
 
 
 SERVER_CONTROL_MGMT_MODE_MENU_DICT = {
-    ServerControlMgmtModeMenu.SERVER_CONTROL_MGMT_MODE_MENU: server_control_mgmt_mode_menu,
     ServerControlMgmtModeMenu.SERVER_CONTROL_PORT_ACCESS_MENU: server_control_port_access_menu,
     ServerControlMgmtModeMenu.SERVER_CONTROL_PORT_CONFIG_MENU: server_control_port_config_menu,
     ServerControlMgmtModeMenu.SERVER_CONTROL_USER_MGMT_MENU: server_control_user_mgmt_menu,
     ServerControlMgmtModeMenu.SERVER_CONTROL_NET_MGMT_MENU: server_control_network_mgnt_menu,
     ServerControlMgmtModeMenu.SERVER_CONTROL_SYSTEM_MGMT_MENU: server_control_system_mgmt_menu,
+}
+
+class ServerControlMenu(IntEnum):
+    SERVER_CONTROL_ACCESS_MODE_MENU = 0
+    SERVER_CONTROL_MGMT_MODE_MENU = auto()
+    SERVER_CONTROL_PORT_ACCESS_MENU = auto()
+    SERVER_CONTROL_PORT_CONFIG_MENU = auto()
+    SERVER_CONTROL_USER_MGMT_MENU = auto()
+    SERVER_CONTROL_NET_MGMT_MENU = auto()
+    SERVER_CONTROL_SYSTEM_MGMT_MENU = auto()
+
+    # Enter the SERVER_CONTROL_PORT_ACCESS_MENU
+    SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU = auto()
+
+SERVER_CONTROL_MENU_DICT = {
+    ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU: server_control_port_access_menu,
+    ServerControlMenu.SERVER_CONTROL_MGMT_MODE_MENU: server_control_mgmt_mode_menu,
+    ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU: server_control_port_access_menu,
+    ServerControlMenu.SERVER_CONTROL_PORT_CONFIG_MENU: server_control_port_config_menu,
+    ServerControlMenu.SERVER_CONTROL_USER_MGMT_MENU: server_control_user_mgmt_menu,
+    ServerControlMenu.SERVER_CONTROL_NET_MGMT_MENU: server_control_network_mgnt_menu,
+    ServerControlMenu.SERVER_CONTROL_SYSTEM_MGMT_MENU: server_control_system_mgmt_menu,
+    ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU: "",
 }
 
 

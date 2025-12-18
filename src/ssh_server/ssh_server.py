@@ -1,4 +1,3 @@
-import logging
 import threading
 
 from src.common.logger_system import LoggerSystem
@@ -62,7 +61,8 @@ class SshServer(threading.Thread, LoggerSystem):
 
         # Create the SSH port list for the none auth subsystem
         for serial_port_id in range(NUM_OF_SERIAL_PORT):
-            rc, ssh_port = self._ssh_server_mgr_dict["ssh_server_network_mgr"].get_ssh_port_direct_access_serial_port(serial_port_id)
+            rc, ssh_port = (
+                self._ssh_server_mgr_dict["ssh_server_network_mgr"].get_ssh_port_direct_access_serial_port(serial_port_id))
             if rc != RcCode.SUCCESS:
                 return rc
             group_id = serial_port_id % 8
