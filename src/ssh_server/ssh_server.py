@@ -1,6 +1,7 @@
 import logging
 import threading
 
+from src.common.logger_system import LoggerSystem
 from src.common.rc_code import RcCode
 from src.ssh_server.ssh_server_mgmt.ssh_server_account_mgr import SshServerAccountMgr
 from src.ssh_server.ssh_server_mgmt.ssh_server_network_mgr import SshServerNetworkMgr
@@ -11,9 +12,10 @@ MAX_PORT_GROUP = 8
 NUM_OF_SERIAL_PORT = 48
 
 
-class SshServer(threading.Thread):
+class SshServer(threading.Thread, LoggerSystem):
     def __init__(self):
         threading.Thread.__init__(self)
+        LoggerSystem.__init__(self, "ssh-server")
         self._ssh_server_account_mgr = None
         self._ssh_server_serial_port_mgr = None
         self._ssh_server_network_mgr = None
@@ -25,32 +27,10 @@ class SshServer(threading.Thread):
         self._ssh_server_mgr_dict = {
         }
         self._subsystem_stop_event = threading.Event()
-        self._logger = logging.getLogger(__name__)
-
-    def _init_logger_system(self):
-        self._formatter = logging.Formatter(
-            "[%(asctime)s][%(name)-5s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-        self._screen_handler = logging.StreamHandler()
-        self._screen_handler.setLevel(logging.WARNING)
-        self._screen_handler.setFormatter(self._formatter)
-
-        self._file_handler = logging.FileHandler('/var/log/ssh-server.log')
-        self._file_handler.setLevel(logging.INFO)
-        self._file_handler.setFormatter(self._formatter)
-
-        self._logger.setLevel(logging.DEBUG)
-
-        self._logger.addHandler(self._screen_handler)
-        self._logger.addHandler(self._file_handler)
-        self._logger.propagate = False
-
-        return RcCode.SUCCESS
 
     def _init_ssh_server(self):
         # Init log system
-        rc = self._init_logger_system()
+        rc = self.init_logger_system()
         if rc != RcCode.SUCCESS:
             return rc
 

@@ -20,8 +20,8 @@ class RcCode(IntEnum):
     DATA_NOT_READY = auto()
     DEVICE_EXIST = auto()
     EXIT_PROCESS = auto()
-    OPEN_SERIAL = auto()
-    OPEN_TERMINAL = auto()
+    OPEN_SERIAL_PORT = auto()
+    CLOSE_SERIAL_PORT = auto()
     USER_EXIST = auto()
     USER_NOT_FOUND = auto()
     PERMISSION_DENIED = auto()
@@ -64,10 +64,10 @@ class RcCode(IntEnum):
             return "DEVICE_EXIST"
         elif rc == cls.EXIT_PROCESS:
             return "EXIT_PROCESS"
-        elif rc == cls.OPEN_SERIAL:
-            return "OPEN_SERIAL"
-        elif rc == cls.OPEN_TERMINAL:
-            return "OPEN_TERMINAL"
+        elif rc == cls.OPEN_SERIAL_PORT:
+            return "OPEN_SERIAL_PORT"
+        elif rc == cls.CLOSE_SERIAL_PORT:
+            return "CLOSE_SERIAL_PORT"
         elif rc == cls.USER_EXIST:
             return "USER_EXIST"
         elif rc == cls.USER_NOT_FOUND:

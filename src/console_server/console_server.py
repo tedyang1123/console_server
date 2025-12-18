@@ -179,6 +179,7 @@ class ConsoleServer(threading.Thread):
                     if rc != RcCode.SUCCESS:
                         # Ignore this event, process next event.
                         continue
+
                     client_sock_fd = client_sock.fileno()
                     self._client_sock_info_dict[client_sock_fd] = {}
                     self._client_sock_info_dict[client_sock_fd]["socket"] = client_sock
