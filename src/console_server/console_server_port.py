@@ -3,51 +3,33 @@ import os
 import threading
 import time
 from serial import Serial, SerialException
+from src.common.logger_system import LoggerSystem
 from src.common.rc_code import RcCode
 
 
-class ConsoleServerSerialPort(threading.Thread):
+class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
     def __init__(self, port_id):
-        super().__init__()
         self._serial_port_id = port_id
+        threading.Thread.__init__(self)
+        LoggerSystem.__init__(self, "serial_port_{}".format(self._serial_port_id))
         self._serial_config = {}
-        self._init_logger_system()
+        self.init_logger_system()
         self._current_user = 0
         self._serial_port_description = ""
 
     def __del__(self):
         self.close_com_port()
 
-    def _init_logger_system(self):
-        self._formatter = logging.Formatter(
-            "[%(asctime)s][%(name)-5s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-        self._logger = logging.getLogger(__name__ + " {}".format(self._serial_port_id))
-        self._screen_handler = logging.StreamHandler()
-        self._screen_handler.setLevel(logging.WARNING)
-        self._screen_handler.setFormatter(self._formatter)
-
-        self._file_handler = logging.FileHandler("/var/log/console-server.log")
-        self._file_handler.setLevel(logging.INFO)
-        self._file_handler.setFormatter(self._formatter)
-
-        self._logger.setLevel(logging.DEBUG)
-
-        self._logger.addHandler(self._screen_handler)
-        self._logger.addHandler(self._file_handler)
-        self._logger.propagate = False
-
     def test_com_port_read(self, port_id):
-        if self._serial_config["port_path"] == "" or \
-                not os.path.exists(self._serial_config["port_path"]):
+        if self._serial_config["dev_port"] == "" or \
+                not os.path.exists(self._serial_config["dev_port"]):
             return RcCode.DEVICE_NOT_FOUND
         return RcCode.SUCCESS
 
     def create_serial_port(self):
         self._serial_config = {
             "com_port": Serial(),
-            "dev_port": "",
+            "dev_port": "/dev/ttyUSB{}".format(self._serial_port_id - 1),
             "baud_rate": 115200,
             "usb_id": ""
         }

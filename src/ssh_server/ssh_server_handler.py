@@ -9,9 +9,10 @@ from src.server_control.server_control import ServerControlAccessMode, ServerCon
 from src.server_control.server_control_menu import ServerControlMenu, SERVER_CONTROL_MENU_DICT
 
 
-class SshServerHandler(threading.Thread, LoggerSystem):
-    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None):
+class SshServerSessionHandler(threading.Thread, LoggerSystem):
+    def __init__(self, client_sock, ssh_key_handler, channel_timeout=30, ssh_authenticator_server_class=None, logger_name="ssh_server_handler"):
         threading.Thread.__init__(self)
+        LoggerSystem.__init__(self, logger_name)
         self._username = os.getlogin()
         self._client_sock = client_sock
         self._key_handler = ssh_key_handler
@@ -108,13 +109,12 @@ class SshServerHandler(threading.Thread, LoggerSystem):
         self.complete = True
 
 
-class SshServerPassWdAuthHandler(SshServerHandler):
+class SshServerPassWdAuthSessionHandler(SshServerSessionHandler):
     def __init__(self, handler_id, ssh_server_mgr_dict, client_sock, ssh_key_handler, channel_timeout=30,
                  ssh_authenticator_server_class=None):
         self.handler_id = handler_id
         self._ssh_server_mgr_dict = ssh_server_mgr_dict
-        SshServerHandler.__init__(self, client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
-        LoggerSystem.__init__(self, "ssh_passwd_auth_handler")
+        SshServerSessionHandler.__init__(self, client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class, "ssh_passwd_auth_handler")
         self._ssh_user_menu_mode = None
         self._username = os.getlogin()
         self._current_menu = None
@@ -146,7 +146,7 @@ class SshServerPassWdAuthHandler(SshServerHandler):
 
         rc = self._server_control_mode.init_control_mode()
         if rc != RcCode.SUCCESS:
-            self._logger.warning("Init control mode fail")
+            self._logger.info("Init control mode fail")
             return rc
 
         self._reinit = False
@@ -170,32 +170,32 @@ class SshServerPassWdAuthHandler(SshServerHandler):
             if self._is_admin:
                 match self._server_control_mode.next_menu:
                     case ServerControlMenu.SERVER_CONTROL_MGMT_MODE_MENU:
-                        self._logger.info("Change to Mgmt mode menu")
+                        self._logger.warning("Change to Mgmt mode menu")
                         self._current_menu = self._server_control_mode.next_menu
                         self._server_control_mode = ServerControlMgmtMode(self._channel)
                     case ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU:
-                        self._logger.info("Change to Port Access mode menu")
+                        self._logger.warning("Change to Port Access mode menu")
                         num_of_serial_port = self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port()
                         self._current_menu = self._server_control_mode.next_menu
                         self._server_control_mode = ServerControlPortAccessMode(self._channel, num_of_serial_port)
                     case ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU:
-                        self._logger.info("Change to Port Access mode menu")
+                        self._logger.warning("Change to Serial Port Access mode menu")
                         self._current_menu = self._server_control_mode.next_menu
                         serial_port_id = self._server_control_mode.serial_port_id
                         self._server_control_mode = ServerControlSerialAccessMode(self.handler_id, self._channel, serial_port_id)
             else:
                 match self._server_control_mode.next_menu:
                     case ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU:
-                        self._logger.info("Change to Access mode menu")
+                        self._logger.warning("Change to Access mode menu")
                         self._current_menu = self._server_control_mode.next_menu
                         self._server_control_mode = ServerControlAccessMode(self._channel)
                     case ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU:
-                        self._logger.info("Change to Port Access mode menu")
+                        self._logger.warning("Change to Port Access mode menu")
                         self._current_menu = self._server_control_mode.next_menu
                         num_of_serial_port = self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port()
                         self._server_control_mode = ServerControlPortAccessMode(self._channel, num_of_serial_port)
                     case ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU:
-                        self._logger.info("Change to Serial Port Access mode menu")
+                        self._logger.warning("Change to Serial Port Access mode menu")
                         self._current_menu = self._server_control_mode.next_menu
                         serial_port_id = self._server_control_mode.serial_port_id
                         self._server_control_mode = ServerControlSerialAccessMode(self.handler_id, self._channel, serial_port_id)
@@ -237,14 +237,13 @@ class SshServerPassWdAuthHandler(SshServerHandler):
         return RcCode.SUCCESS
 
 
-class SshServerNoneAuthHandler(SshServerHandler):
+class SshServerNoneAuthSessionHandler(SshServerSessionHandler):
     def __init__(self, handler_id, ssh_server_mgr_dict, ssh_server_port, client_sock, ssh_key_handler,
                  channel_timeout=30, ssh_authenticator_server_class=None):
         self.handler_id = handler_id
         self._ssh_server_mgr_dict = ssh_server_mgr_dict
         self._ssh_server_port = ssh_server_port
-        SshServerHandler.__init__(self, client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class)
-        LoggerSystem.__init__(self, "ssh_none_auth_handler-{}".format(handler_id))
+        SshServerSessionHandler.__init__(self, client_sock, ssh_key_handler, channel_timeout, ssh_authenticator_server_class, "ssh_none_auth_handler-{}".format(handler_id))
         self._username = os.getlogin()
         self._login = False
         self._server_control_mode = None

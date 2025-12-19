@@ -7,7 +7,7 @@ import select
 from src.common.logger_system import LoggerSystem
 from src.common.rc_code import RcCode
 from src.ssh_server.ssh_server_authenticator import SshServerNoneAuthenticator, SshServerPassWdAuthenticator, SshKeyHandler
-from src.ssh_server.ssh_server_handler import SshServerNoneAuthHandler, SshServerPassWdAuthHandler
+from src.ssh_server.ssh_server_handler import SshServerNoneAuthSessionHandler, SshServerPassWdAuthSessionHandler
 
 
 class SshServerSubsystem(threading.Thread, LoggerSystem):
@@ -221,7 +221,7 @@ class SshServerPassWdAuthSubSystem(SshServerSubsystem):
                 self._logger.warning("A new client arrived. {}".format(client_sock[0].getpeername()))
 
                 # Create the SSH server handler to execute SSH connection
-                server_handler = SshServerPassWdAuthHandler(self._handler_num,
+                server_handler = SshServerPassWdAuthSessionHandler(self._handler_num,
                                                             self._ssh_server_mgr_dict,
                                                             client_sock[0],
                                                             self._ssh_key_handler,
@@ -289,7 +289,7 @@ class SshServerNoneAuthSubSystem(SshServerSubsystem):
                 self._logger.info("A new client arrived. {}".format(client_sock[0].getpeername()))
 
                 # Create the SSH server handler to execute SSH connection
-                server_handler = SshServerNoneAuthHandler(self._handler_num,
+                server_handler = SshServerNoneAuthSessionHandler(self._handler_num,
                                                           self._ssh_server_mgr_dict,
                                                           server_port_id,
                                                           client_sock[0],

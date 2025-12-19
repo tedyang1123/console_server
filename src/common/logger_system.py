@@ -21,7 +21,7 @@ class LoggerSystem:
         self._screen_handler.setFormatter(self._formatter)
 
         self._file_handler = logging.FileHandler('/var/log/{}.log'.format(self._logger_name))
-        self._file_handler.setLevel(logging.INFO)
+        self._file_handler.setLevel(logging.DEBUG)
         self._file_handler.setFormatter(self._formatter)
 
         self._logger.setLevel(logging.DEBUG)

@@ -63,7 +63,7 @@ class ServerControlMode(LoggerSystem):
                         rc = RcCode.SUCCESS
                     case _:
                         rc = RcCode.DATA_NOT_FOUND
-            case 0x08:
+            case 0x08 | 0x7F:
                 # Read backspace
                 if self._input_buffer != "":
                     self._input_buffer = self._input_buffer[:-1]
@@ -216,7 +216,7 @@ class ServerControlPortAccessMode(ServerControlMode):
         try:
             serial_port_id = int(process_data)
             if 1 <= serial_port_id <= self._num_of_serial_port_id:
-                self._logger.warning("Valid port id.")
+                self._logger.info("Valid serial port id.")
                 self.next_menu = ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU
                 self.serial_port_id = serial_port_id
                 rc = RcCode.CHANGE_MENU
@@ -259,9 +259,17 @@ class ServerControlSerialAccessMode(ServerControlMode):
         ServerControlMode.__init__(self, channel, "ssh_serial_access_mode_{}".format(subsystem_id))
         self._channel = channel
         self._serial_port_id = serial_port_id
-        self._server_socket_group_id = (self._serial_port_id % 8) + 1
+        self._server_socket_group_id = ((self._serial_port_id - 1) % 8) + 1
         self._server_socket_file_path = "/tmp/server_{}.sock".format(self._server_socket_group_id)
         self._client_sock = None
+        self._start_port_process_flag = False
+        self._stop_port_process_flag = False
+        
+        # Negotiation with console server
+        self._send_connect_request = False
+        self._send_disconnect_request = False
+        self._send_request_complete = False
+        self._send_port_id_complete = False
 
     def _uds_socket_init(self):
         try:
@@ -297,7 +305,12 @@ class ServerControlSerialAccessMode(ServerControlMode):
                 if e.errno == errno.EAGAIN:
                     return RcCode.SUCCESS, ""
                 return RcCode.FAILURE, None
-        return RcCode.SUCCESS, str(data, encoding="utf-8")
+        try:
+            data_str = str(data, encoding="utf-8")
+        except UnicodeDecodeError:
+            self._logger.warning("Unknow code: {}".format(data))
+            data_str = "."
+        return RcCode.SUCCESS, data_str
 
     def _uds_socket_close(self):
         try:
@@ -307,6 +320,7 @@ class ServerControlSerialAccessMode(ServerControlMode):
         return RcCode.SUCCESS
     
     def init_control_mode(self):
+        self._logger.info("Init control mode for ServerControlSerialAccessMode")
         rc = self.init_logger_system()
         if rc != RcCode.SUCCESS:
             self._logger.error("Init logger system, fail. rc: {}".format(rc))
@@ -328,11 +342,8 @@ class ServerControlSerialAccessMode(ServerControlMode):
             self._logger.info("Read the data: {}".format(read_str))
             for ascii_val in read_str:
                 if ascii_val == 0x14:
-                    rc = self._uds_socket_close()
-                    if rc != RcCode.SUCCESS:
-                        self._logger.error("Can not close the socket. rc: {}".format(rc))
-                        return rc
                     return RcCode.EXIT_MENU
+            self._logger.info("Get the data from the ssh server")
             rc = self._uds_socket_send(read_str)
             if rc != RcCode.SUCCESS:
                 self._logger.error("Can not write the message to console rc: {}".format(self._server_socket_file_path, rc))
@@ -342,24 +353,110 @@ class ServerControlSerialAccessMode(ServerControlMode):
     def _handle_console_server_data(self):
         rc, data = self._uds_socket_recv(1024)
         if rc == RcCode.SUCCESS:
+            if data != "":
+                self._logger.info("Get the data from the console server")
             try:
                 self._channel.send(data)
             except UnicodeDecodeError:
                 self._logger.warning("Can not decode the data rc: {}".format(rc))
                 self._channel.send('.')
-        else:
-            self._logger.warning("Can not receive the data. rc: {}".format(rc))
-            return RcCode.FAILURE
         return RcCode.SUCCESS
 
     def run_system(self):
-        rc = self._handle_ssh_server_data()
-        if rc != RcCode.SUCCESS:
-            self._logger.error("Process SSH data fail. rc: {}".format(rc))
-            return rc
+        # Start port process
+        if not self._start_port_process_flag:
+            if not self._send_request_complete :
+                if not self._send_connect_request:
+                    rc = self._uds_socket_send(bytes("connect", 'utf-8'))
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    self._send_connect_request = True
+                else:
+                    rc, data = self._uds_socket_recv(1024)
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    if data == "":
+                        return RcCode.SUCCESS
+                    elif data == "OK":
+                        self._send_request_complete = True
+                    else:
+                        return RcCode.FAILURE
+            else:
+                if not self._send_port_id_complete:
+                    rc = self._uds_socket_send(bytes(str(self._serial_port_id), 'utf-8'))
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    self._send_port_id_complete = True
+                else:
+                    rc, data = self._uds_socket_recv(1024)
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    if data == "":
+                        return RcCode.SUCCESS
+                    elif data == "OK":
+                        self._send_port_id_complete = True
+                        self._start_port_process_flag = True
+                    else:
+                        return RcCode.FAILURE
+            return RcCode.SUCCESS
+        
+        # Event processs
+        if not self._stop_port_process_flag:
+            rc = self._handle_ssh_server_data()
+            if rc == RcCode.EXIT_MENU:
+                self._logger.warning("Receive stop event")
+                self._stop_port_process_flag = True
+            elif rc != RcCode.SUCCESS:
+                #self._logger.error("Process SSH data fail. rc: {}".format(rc))
+                return rc
+        
+        # Stop port process
+        if self._stop_port_process_flag:
+            self._send_request_complete = False
+            self._send_port_id_complete = False
+            if not self._send_request_complete :
+                if not self._send_disconnect_request:
+                    rc = self._uds_socket_send(bytes("disconnect", 'utf-8'))
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    self._logger.warning("Send disconnect command complete.")
+                    self._send_disconnect_request = True
+                else:
+                    rc, data = self._uds_socket_recv(1024)
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    if data == "":
+                        return RcCode.SUCCESS
+                    elif data == "OK":
+                        self._send_request_complete = True
+                        self._logger.warning("Receive response of disconnect command complete.")
+                    else:
+                        self._logger.warning("Unknown data")
+                        return RcCode.SUCCESS
+            else:
+                if not self._send_port_id_complete:
+                    rc = self._uds_socket_send(str(self._serial_port_id))
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    self._logger.warning("Send disconnect port complete.")
+                    self._send_port_id_complete = True
+                else:
+                    rc, data = self._uds_socket_recv(1024)
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    if data == "":
+                        return RcCode.SUCCESS
+                    elif data == "OK":
+                        self._send_port_id_complete = True
+                        self._start_port_process_flag = True
+                        self._logger.warning("Receive response of disconnect port complete.")
+                        return RcCode.EXIT_MENU
+                    else:
+                        return RcCode.SUCCESS
+            return RcCode.SUCCESS
 
         rc = self._handle_console_server_data()
         if rc != RcCode.SUCCESS:
-            self._logger.error("Process Console data fail. rc: {}".format(rc))
+            #self._logger.error("Process Console data fail. rc: {}".format(rc))
             return rc
         return RcCode.SUCCESS
