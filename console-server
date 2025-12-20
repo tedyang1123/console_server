@@ -6,7 +6,7 @@ from src.console_server.console_server import ConsoleServer
 
 @click.command()
 def console_server():
-    server = ConsoleServer(48)
+    server = ConsoleServer(48, 1)
     server.start()
     server.join()
 

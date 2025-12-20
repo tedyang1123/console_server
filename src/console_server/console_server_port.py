@@ -1,19 +1,18 @@
-import logging
 import os
-import threading
 import time
 from serial import Serial, SerialException
-from src.common.logger_system import LoggerSystem
+
 from src.common.rc_code import RcCode
 
 
-class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
-    def __init__(self, port_id):
+class ConsoleServerSerialPort:
+    def __init__(self, port_id, logger_system):
         self._serial_port_id = port_id
-        threading.Thread.__init__(self)
-        LoggerSystem.__init__(self, "serial_port_{}".format(self._serial_port_id))
+
+        self._logger_system = logger_system
+        self._logger = self._logger_system.get_logger()
+
         self._serial_config = {}
-        self.init_logger_system()
         self._current_user = 0
         self._serial_port_description = ""
 
@@ -21,8 +20,7 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
         self.close_com_port()
 
     def test_com_port_read(self, port_id):
-        if self._serial_config["dev_port"] == "" or \
-                not os.path.exists(self._serial_config["dev_port"]):
+        if self._serial_config["dev_port"] == "" or not os.path.exists(self._serial_config["dev_port"]):
             return RcCode.DEVICE_NOT_FOUND
         return RcCode.SUCCESS
 
@@ -43,6 +41,8 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
         # Test if the serial exists.
         rc = self.test_com_port_read(self._serial_port_id)
         if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("The serial port {} is not found.".format(self._serial_port_id)))
             return RcCode.DEVICE_NOT_FOUND
 
         # Apply the serial config to serial port object
@@ -54,8 +54,11 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
             self._serial_config["com_port"].dtr = False
             self._serial_config["com_port"].open()
         except SerialException:
-            self._logger.warning("The port {} can not open".format(self._serial_port_id))
-            self._logger.warning("The dev port path is {}".format(self._serial_config["dev_port"]))
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("The serial port {} can not open".format(self._serial_port_id)))
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "The dev port path is {}".format(self._serial_config["dev_port"])))
             return RcCode.DEVICE_NOT_FOUND
 
         # Check if serial port has been opened.
@@ -64,13 +67,17 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
             time.sleep(1)
             cnt = cnt + 1
         if cnt >= 5:
-            self._logger.warning("The port {} is not ready.".format(self._serial_port_id))
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("The serial port {} is not ready.".format(self._serial_port_id)))
             return RcCode.FAILURE
         return RcCode.SUCCESS
 
     def close_com_port(self):
         # There are some users to access this serial port. Do not close it.
         if self._current_user > 1:
+            self._logger.info(
+                self._logger_system.set_logger_rc_code(
+                    "The serial port {} is still in used".format(self._serial_port_id)))
             return RcCode.SUCCESS
 
         # Close the serial port.
@@ -78,7 +85,8 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
             self._serial_config["com_port"].close()
             rc = RcCode.SUCCESS
         except OSError:
-            self._logger.warning("The port {} can not close".format(self._serial_port_id))
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("The serial port {} can not close".format(self._serial_port_id)))
             rc = RcCode.DEVICE_NOT_FOUND
         return rc
 
@@ -92,7 +100,8 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
             data = self._serial_config["com_port"].read(size=buf_size)
             rc = RcCode.SUCCESS
         except OSError:
-            self._logger.warning("Can not access port {}".format(self._serial_port_id))
+            self._logger.warning(
+                self._logger_system.set_logger_rc_code("Can not access serial port {}".format(self._serial_port_id)))
             rc = RcCode.FAILURE
         return rc, data
 
@@ -102,7 +111,8 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
             self._serial_config["com_port"].flush()
             rc = RcCode.SUCCESS
         except OSError:
-            self._logger.warning("Can not access port {}".format(self._serial_port_id))
+            self._logger.warning(
+                self._logger_system.set_logger_rc_code("Can not access serial port {}".format(self._serial_port_id)))
             rc = RcCode.FAILURE
         return rc
 
@@ -112,7 +122,8 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
             count = self._serial_config["com_port"].in_waiting
             rc = RcCode.SUCCESS
         except OSError:
-            self._logger.warning("Can not access port {}".format(self._serial_port_id))
+            self._logger.warning(
+                self._logger_system.set_logger_rc_code("Can not access serial port {}".format(self._serial_port_id)))
             rc = RcCode.FAILURE
         return rc, True if count else False
 
@@ -122,7 +133,8 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
             count = self._serial_config["com_port"].out_waiting
             rc = RcCode.SUCCESS
         except OSError:
-            self._logger.warning("Can not access port {}".format(self._serial_port_id))
+            self._logger.warning(
+                self._logger_system.set_logger_rc_code("Can not access serial port {}".format(self._serial_port_id)))
             rc = RcCode.FAILURE
         return rc, True if count else False
 
@@ -131,14 +143,16 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
             state = self._serial_config["com_port"].is_open
             rc = RcCode.SUCCESS
         except OSError:
-            self._logger.warning("Can not access port {}".format(self._serial_port_id))
+            self._logger.warning(
+                self._logger_system.set_logger_rc_code("Can not access serial port {}".format(self._serial_port_id)))
             state = False
             rc = RcCode.FAILURE
         return rc, state
 
     def set_com_port_baud_rate(self, rate):
         if rate > 230400 or (rate % 1200) != 0:
-            self._logger.warning("Invalid baudrate {}".format(self._serial_port_id))
+            self._logger.warning(
+                self._logger_system.set_logger_rc_code("Invalid baud rate {}".format(self._serial_port_id)))
             return RcCode.INVALID_VALUE
         self._serial_config["baud_rate"] = rate
 
@@ -158,11 +172,13 @@ class ConsoleServerSerialPort(threading.Thread, LoggerSystem):
                 time.sleep(1)
                 cnt = cnt + 1
             if cnt >= 5:
-                self._logger.warning("The port {} is not ready.".format(self._serial_port_id))
+                self._logger.warning(
+                    self._logger_system.set_logger_rc_code("The port {} is not ready.".format(self._serial_port_id)))
                 return RcCode.FAILURE
             rc = RcCode.SUCCESS
         except OSError:
-            self._logger.warning("The port {} can not close".format(self._serial_port_id))
+            self._logger.warning(
+                self._logger_system.set_logger_rc_code("The port {} can not close".format(self._serial_port_id)))
             rc = RcCode.DEVICE_NOT_FOUND
         return rc
 

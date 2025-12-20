@@ -4,21 +4,18 @@ import threading
 import pam
 import paramiko
 
-from src.common.logger_system import LoggerSystem
 
-
-class SshKeyHandler(LoggerSystem):
-    def __init__(self, server_pri_key_file, auth_host_pub_key_file=None):
+class SshKeyHandler:
+    def __init__(self, server_pri_key_file, logger_system, auth_host_pub_key_file=None):
         self._auth_host_pub_key_file = auth_host_pub_key_file
+        self._logger_system = logger_system
+        self._logger = self._logger_system.get_logger()
         self._server_pri_key_file = os.path.expanduser(server_pri_key_file)
         self._server_private_key = None
         self._host_pub_keys = {}
 
-        LoggerSystem.__init__(self, "ssh_key_handler")
-
         self._init_server_pri_key()
         self._init_host_pub_key()
-
 
     def _init_host_pub_key(self):
         if self._auth_host_pub_key_file:
@@ -35,7 +32,8 @@ class SshKeyHandler(LoggerSystem):
                     user = entries[2].split('@')
                     self.add_host_public_key(entries[1], user[0])
             except OSError:
-                self._logger.error("Can not access file to get the host public keys.")
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not access file to get the host public keys."))
                 return
 
     def _init_server_pri_key(self):
@@ -57,9 +55,12 @@ class SshKeyHandler(LoggerSystem):
 
 
 class SshServerPassWdAuthenticator(paramiko.ServerInterface):
-    def __init__(self, ssh_key_handler):
-        self.thread_event = threading.Event()
+    def __init__(self, ssh_key_handler, logger_system):
         self._ssh_key_handler = ssh_key_handler
+        self._logger_system = logger_system
+        self._logger = self._logger_system.get_logger()
+
+        self.thread_event = threading.Event()
         self.username = ''
         self.key = ''
 
@@ -142,7 +143,11 @@ class SshServerPassWdAuthenticator(paramiko.ServerInterface):
 
 
 class SshServerNoneAuthenticator(paramiko.ServerInterface):
-    def __init__(self, ssh_key_handler):
+    def __init__(self, ssh_key_handler, logger_system):
+        self._ssh_key_handler = ssh_key_handler
+        self._logger_system = logger_system
+        self._logger = self._logger_system.get_logger()
+
         self.thread_event = threading.Event()
         self._ssh_key_handler = ssh_key_handler
         self.username = ''

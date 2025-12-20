@@ -5,7 +5,7 @@ from src.ssh_server.ssh_server import SshServer
 
 
 def main():
-    server = SshServer()
+    server = SshServer(1)
     server.start()
     server.join()
 

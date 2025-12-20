@@ -4,8 +4,7 @@ from src.common.rc_code import RcCode
 
 
 class ConsoleAnsiEscapeParser:
-    def __init__(self, ssh_channel):
-        self._ssh_channel = ssh_channel
+    def __init__(self):
         self._csi_sequence_str = r'\[([0-9]*)(;?)([0-9]*)([@A-Z\[\\\]\^_`a-z\{\|\}~])'
 
     def data_parse(self, data_str):

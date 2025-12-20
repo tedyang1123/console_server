@@ -3,11 +3,11 @@ from src.common.rc_code import RcCode
 
 
 class SshServerNetworkMgr(LoggerSystem):
-    def __init__(self, num_of_ssh_port):
+    def __init__(self, num_of_serial_port):
         LoggerSystem.__init__(self, "ssh_network_mgr")
         self._ssh_port_direct_port_dict = {}
-        for ssh_port_id in range(num_of_ssh_port):
-            self._ssh_port_direct_port_dict[ssh_port_id] = 2300 + ssh_port_id
+        for serial_port_id in range(1, num_of_serial_port + 1):
+            self._ssh_port_direct_port_dict[serial_port_id] = 2300 + serial_port_id
 
     def set_ssh_port_direct_access_serial_port(self, serial_port, ssh_port):
         self._ssh_port_direct_port_dict[serial_port] = ssh_port

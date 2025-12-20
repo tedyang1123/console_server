@@ -15,6 +15,7 @@ class RcCode(IntEnum):
     INVALID_VALUE = auto()
     INVALID_TYPE = auto()
     DATA_NOT_FOUND = auto()
+    DATA_EXIST = auto()
     DEVICE_BUSY = auto()
     DEVICE_NOT_FOUND = auto()
     DATA_NOT_READY = auto()
@@ -56,6 +57,8 @@ class RcCode(IntEnum):
             return "INVALID_TYPE"
         elif rc == cls.DATA_NOT_FOUND:
             return "DATA_NOT_FOUND"
+        elif rc == cls.DATA_EXIST:
+            return "DATA_EXIST"
         elif rc == cls.DEVICE_BUSY:
             return "DEVICE_BUSY"
         elif rc == cls.DEVICE_NOT_FOUND:

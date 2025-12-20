@@ -31,3 +31,11 @@ class LoggerSystem:
         self._logger.propagate = False
 
         return RcCode.SUCCESS
+
+    def get_logger(self):
+        return self._logger
+
+    def set_logger_rc_code(self, msg, rc=None):
+        if rc is None:
+            return msg
+        return msg + " rc: {}".format(RcCode.covert_rc_to_string(rc))
