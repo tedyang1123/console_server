@@ -1,0 +1,735 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.0.3 Chrome/140.0.7339.249 Electron/38.7.0 Safari/537.36" version="29.0.3">
+  <diagram name="第1頁" id="EiU1zW-riBS0ux3MyX8M">
+    <mxGraphModel dx="3565" dy="2103" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="Xx057Cz166zRWK_LhdTz-1" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="41" y="40" width="1080" height="1560" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-92" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="81" y="800" width="1000" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-144" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="40" width="1280" height="1560" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-98" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="131" y="840" width="910" height="680" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-271" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;dashPattern=1 2;strokeWidth=5;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-1" target="Xx057Cz166zRWK_LhdTz-144">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-272" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;UDS Connect&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Xx057Cz166zRWK_LhdTz-271">
+          <mxGeometry x="-0.3016" y="1" relative="1" as="geometry">
+            <mxPoint x="23" y="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-100" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="880" width="264" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-113" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1040" width="264" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-119" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1200" width="264" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-125" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1360" width="264" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-128" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="761" y="1360" width="259" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-122" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="761" y="1200" width="259" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-116" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="761" y="1040" width="259" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-106" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="761" y="880" width="259" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-93" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;SSH None Auth Subsystem&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="91" y="800" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-3" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="81" y="80" width="1000" height="680" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-70" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="452" y="600" width="258" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-67" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="452" y="440" width="258" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-64" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="452" y="280" width="258" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-61" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="452" y="120" width="258" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-79" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="600" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-76" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="801" y="440" width="259" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-2" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;SSH Server&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="41" y="40" width="1080" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-73" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="280" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-158" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="80" width="560" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-4" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;SSH Password Auth Subsystem&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="52" y="80" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-5" target="Xx057Cz166zRWK_LhdTz-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-5" target="Xx057Cz166zRWK_LhdTz-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-5" target="Xx057Cz166zRWK_LhdTz-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-5" target="Xx057Cz166zRWK_LhdTz-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-5" target="Xx057Cz166zRWK_LhdTz-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-5" target="Xx057Cz166zRWK_LhdTz-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-5" target="Xx057Cz166zRWK_LhdTz-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-5" target="Xx057Cz166zRWK_LhdTz-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-5" value="SSH Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="102" y="460" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-90" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-6" target="Xx057Cz166zRWK_LhdTz-168">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-6" value="SSH Worker" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="252" y="120" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-7" value="SSH Worker" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="252" y="200" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-88" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-8" target="Xx057Cz166zRWK_LhdTz-167">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-8" value="SSH Worker" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="252" y="280" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-175" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-9" target="Xx057Cz166zRWK_LhdTz-170">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="297" y="420" />
+              <mxPoint x="770" y="420" />
+              <mxPoint x="770" y="350" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-9" value="SSH Worker" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="252" y="360" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-86" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-10" target="Xx057Cz166zRWK_LhdTz-166">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-10" value="SSH Worker" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="252" y="440" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-173" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-11" target="Xx057Cz166zRWK_LhdTz-172">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="297" y="580" />
+              <mxPoint x="770" y="580" />
+              <mxPoint x="770" y="510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-11" value="SSH Worker" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="252" y="520" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-12" value="SSH Worker" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="252" y="600" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-13" target="Xx057Cz166zRWK_LhdTz-176">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="297" y="740" />
+              <mxPoint x="770" y="740" />
+              <mxPoint x="770" y="670" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-13" value="SSH Worker" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="252" y="680" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-58" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="801" y="120" width="259" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-59" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="801" y="120" width="259" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-60" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="932" y="170" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-62" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="452" y="120" width="258" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-63" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="170" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-65" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="452" y="280" width="258" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-66" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="330" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-68" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="452" y="440" width="258" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-71" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="452" y="600" width="258" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-72" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="650" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-74" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="801" y="280" width="259" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-75" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="932" y="330" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-77" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="801" y="440" width="259" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-78" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="930" y="490" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-80" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="800" y="600" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-81" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="930" y="650" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-84" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-12" target="Xx057Cz166zRWK_LhdTz-165">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-89" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-7" target="Xx057Cz166zRWK_LhdTz-169">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="297" y="260" />
+              <mxPoint x="770" y="260" />
+              <mxPoint x="770" y="190" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-134" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-94" target="Xx057Cz166zRWK_LhdTz-161">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-94" value="SSH Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="166" y="880" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-136" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-95" target="Xx057Cz166zRWK_LhdTz-180">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="211" y="1020" />
+              <mxPoint x="721" y="1020" />
+              <mxPoint x="721" y="950" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-95" value="SSH Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="166" y="960" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-96" value="SSH Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="166" y="1040" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-138" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-97" target="Xx057Cz166zRWK_LhdTz-181">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="216" y="1180" />
+              <mxPoint x="721" y="1180" />
+              <mxPoint x="721" y="1110" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-97" value="SSH Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="171" y="1120" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-99" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;SSH None Auth Handler&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="131" y="840" width="910" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-101" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="390" y="880" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-102" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="524" y="930" width="121" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-139" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-103" target="Xx057Cz166zRWK_LhdTz-163">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-103" value="SSH Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="171" y="1200" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-140" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-104" target="Xx057Cz166zRWK_LhdTz-182">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="216" y="1340" />
+              <mxPoint x="721" y="1340" />
+              <mxPoint x="721" y="1270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-104" value="SSH Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="171" y="1280" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-141" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-105" target="Xx057Cz166zRWK_LhdTz-164">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-105" value="SSH Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="171" y="1360" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-107" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="761" y="880" width="259" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-108" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="890" y="930" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-114" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1040" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-115" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="524" y="1090" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-117" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="761" y="1040" width="259" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-118" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="890" y="1090" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-120" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1200" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-121" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="524" y="1250" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-123" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="761" y="1200" width="259" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-124" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="890" y="1250" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-126" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1360" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-127" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="524" y="1410" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-129" value="&lt;span style=&quot;font-size: 15px;&quot;&gt;Server Control Handler (Thread)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="761" y="1360" width="259" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-130" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="890" y="1410" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-142" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-131" target="Xx057Cz166zRWK_LhdTz-179">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="216" y="1500" />
+              <mxPoint x="721" y="1500" />
+              <mxPoint x="721" y="1430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-131" value="SSH Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="171" y="1440" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-133" value="&lt;span style=&quot;font-size: 11px;&quot;&gt;... x8&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="516" y="1520" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-137" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Xx057Cz166zRWK_LhdTz-96" target="Xx057Cz166zRWK_LhdTz-162">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-145" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;SSH Server&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="40" width="1280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-153" value="UDS Client Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="220" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-159" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1490" y="140" as="sourcePoint" />
+            <mxPoint x="1490" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-161" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="404" y="930" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-162" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="404" y="1090" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-163" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="404" y="1250" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-164" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="404" y="1410" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-165" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="461" y="650" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-166" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="461" y="490" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-167" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="461" y="330" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-168" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="461" y="170" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-169" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="810" y="170" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-170" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="810" y="330" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-172" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="810" y="490" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-176" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="810" y="650" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-178" value="UDS Client Socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="490" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-179" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="770" y="1410" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-180" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="770" y="930" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-181" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="770" y="1090" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-182" value="SSH socket (C)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="770" y="1250" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-185" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1600" y="120" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-186" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1800" y="180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-187" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1800" y="120" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-188" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1800" y="300" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-189" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1800" y="240" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-190" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1600" y="300" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-191" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1600" y="240" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-192" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1600" y="180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-278" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;ConsoleServerHandler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1403" y="80" width="557" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-280" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1403" y="400" width="557" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-281" value="UDS Client Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1433" y="540" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-282" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1493" y="460" as="sourcePoint" />
+            <mxPoint x="1493" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-283" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1603" y="440" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-284" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1803" y="500" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-285" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1803" y="440" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-286" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1803" y="620" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-287" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1803" y="560" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-288" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1603" y="620" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-289" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1603" y="560" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-290" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1603" y="500" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-291" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;ConsoleServerHandler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1406" y="400" width="554" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-292" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1403" y="720" width="557" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-293" value="UDS Client Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1433" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-294" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1493" y="780" as="sourcePoint" />
+            <mxPoint x="1493" y="780" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-295" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1603" y="760" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-296" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1803" y="820" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-297" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1803" y="760" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-298" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1803" y="940" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-299" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1803" y="880" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-300" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1603" y="940" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-301" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1603" y="880" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-302" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1603" y="820" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-303" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;ConsoleServerHandler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1406" y="720" width="554" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-304" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1406" y="1040" width="554" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-305" value="UDS Client Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1436" y="1180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-306" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1496" y="1100" as="sourcePoint" />
+            <mxPoint x="1496" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-307" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1606" y="1080" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-308" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1806" y="1140" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-309" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1806" y="1080" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-310" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1806" y="1260" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-311" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1806" y="1200" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-312" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1606" y="1260" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-313" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1606" y="1200" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-314" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1606" y="1140" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-315" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;ConsoleServerHandler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1409" y="1040" width="551" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-364" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1403" y="1360" width="1197" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-273" value="UDS Client Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1940" y="1430" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-366" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;ConsoleServerHandler Main (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1409" y="1360" width="1191" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-367" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2047" y="80" width="560" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-368" value="UDS Client Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2077" y="220" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-369" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2137" y="140" as="sourcePoint" />
+            <mxPoint x="2137" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-370" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2247" y="120" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-371" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2447" y="180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-372" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2447" y="120" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-373" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2447" y="300" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-374" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2447" y="240" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-375" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2247" y="300" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-376" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2247" y="240" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-377" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2247" y="180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-378" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;ConsoleServerHandler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="2050" y="80" width="557" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-379" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2050" y="400" width="557" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-380" value="UDS Client Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2080" y="540" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-381" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2140" y="460" as="sourcePoint" />
+            <mxPoint x="2140" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-382" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="440" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-383" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2450" y="500" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-384" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2450" y="440" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-385" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2450" y="620" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-386" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2450" y="560" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-387" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="620" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-388" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="560" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-389" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="500" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-390" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;ConsoleServerHandler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="2053" y="400" width="554" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-391" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2050" y="720" width="557" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-392" value="UDS Client Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2080" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-393" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2140" y="780" as="sourcePoint" />
+            <mxPoint x="2140" y="780" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-394" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="760" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-395" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2450" y="820" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-396" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2450" y="760" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-397" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2450" y="940" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-398" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2450" y="880" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-399" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="940" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-400" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="880" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-401" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="820" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-402" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;ConsoleServerHandler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="2053" y="720" width="554" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-403" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2053" y="1040" width="554" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-404" value="UDS Client Socket (S)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2083" y="1180" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-405" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2143" y="1100" as="sourcePoint" />
+            <mxPoint x="2143" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-406" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2253" y="1080" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-407" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2453" y="1140" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-408" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2453" y="1080" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-409" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2453" y="1260" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-410" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2453" y="1200" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-411" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2253" y="1260" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-412" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2253" y="1200" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-413" value="Serial port" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2253" y="1140" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Xx057Cz166zRWK_LhdTz-414" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;ConsoleServerHandler (Thread)&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="2056" y="1040" width="551" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
