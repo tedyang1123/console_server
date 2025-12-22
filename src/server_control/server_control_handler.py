@@ -160,10 +160,8 @@ class ServerControlHandlerMenuMode:
                         self._logger.info(
                             self._logger_system.set_logger_rc_code(
                                 "Exit Serial Port mode menu, into the Port config mode menu"))
-                        num_of_serial_port = (
-                            self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port())
-                        self._server_control_mode = ServerControlPortAccessMode(
-                            self._trans_func_dict, num_of_serial_port, self._logger_system)
+                        self._server_control_mode = ServerControlMgmtMode(
+                            self._trans_func_dict, self._logger_system)
                         self._current_menu = ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU
             else:
                 match self._current_menu:
@@ -190,10 +188,8 @@ class ServerControlHandlerMenuMode:
                         self._logger.info(
                             self._logger_system.set_logger_rc_code(
                                 "Exit Serial Port mode menu, into the Port config mode menu"))
-                        num_of_serial_port = (
-                            self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port())
-                        self._server_control_mode = ServerControlPortAccessMode(
-                            self._trans_func_dict, num_of_serial_port, self._logger_system)
+                        self._server_control_mode = ServerControlAccessMode(
+                            self._trans_func_dict, self._logger_system)
                         self._current_menu = ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU
             self._reinit = True
             self._login = False

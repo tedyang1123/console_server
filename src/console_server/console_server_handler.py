@@ -453,7 +453,7 @@ class ConsoleServerHandler(threading.Thread):
 
 
             # Get the second parameter. It is a baud rate.
-            baud_rate = int(request_cmd)
+            baud_rate = int(group[2], 10)
 
             self._logger.info(
                 self._logger_system.set_logger_rc_code("The request is 'baudrate' and we start process it."))
@@ -475,19 +475,6 @@ class ConsoleServerHandler(threading.Thread):
                         "The serial port {} is not found.".format(serial_port_id), rc))
                 return rc
 
-            rc = serial_port_obj.close_com_port()
-            if rc != RcCode.SUCCESS:
-                self._logger.error(
-                    self._logger_system.set_logger_rc_code(
-                        "The serial port {} can not be opened.".format(serial_port_id), rc))
-                return rc
-            rc = serial_port_obj.open_com_port()
-            if rc != RcCode.SUCCESS:
-                self._logger.error(
-                    self._logger_system.set_logger_rc_code(
-                        "The serial port {} can not be opened.".format(serial_port_id), rc))
-                return rc
-
             # Update the baud rate in the serial port config
             self._serial_port_config_dict[serial_port_id]["baud_rate"] = baud_rate
 
@@ -501,6 +488,19 @@ class ConsoleServerHandler(threading.Thread):
                         self._logger_system.set_logger_rc_code(
                             "Can not reply the message to client. msg: {}, host: {}".format(
                                 "OK", socket_obj["socket"][0].getpeername())))
+                return rc
+
+            rc = serial_port_obj.close_com_port()
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code(
+                        "The serial port {} can not be opened.".format(serial_port_id), rc))
+                return rc
+            rc = serial_port_obj.open_com_port()
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code(
+                        "The serial port {} can not be opened.".format(serial_port_id), rc))
                 return rc
 
             self._logger.info(

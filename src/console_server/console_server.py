@@ -29,7 +29,7 @@ class ConsoleServerPortConfigDict:
             return RcCode.DATA_NOT_FOUND, None
         return RcCode.SUCCESS, self._serial_port_group_list[group_id]
 
-    def add_serial_port_config(self, group_id, serial_port_id, port_name, baud_rate, description):
+    def add_serial_port_config(self, group_id, serial_port_id, port_name, baud_rate, alias):
         if group_id not in self._serial_port_group_list:
             return RcCode.DATA_NOT_FOUND
         if serial_port_id in self._serial_port_group_list[group_id]:
@@ -37,7 +37,7 @@ class ConsoleServerPortConfigDict:
         self._serial_port_group_list[group_id][serial_port_id] = {}
         self._serial_port_group_list[group_id][serial_port_id]['port_name'] = port_name
         self._serial_port_group_list[group_id][serial_port_id]['baud_rate'] = baud_rate
-        self._serial_port_group_list[group_id][serial_port_id]['description'] = description
+        self._serial_port_group_list[group_id][serial_port_id]['alias'] = alias
         return RcCode.SUCCESS
 
     def del_serial_port_config(self, group_id, serial_port_id):
@@ -57,13 +57,16 @@ class ConsoleServerPortConfigDict:
             return RcCode.SUCCESS, self._serial_port_group_list[group_id][serial_port_id]
         return RcCode.SUCCESS,  self._serial_port_group_list[group_id][serial_port_id][field]
 
+    def get_serial_port_config_all(self):
+        return RcCode.SUCCESS, self._serial_port_group_list
+
 
 class ConsoleServerClientInfoDict:
     def __init__(self):
         self._client_info_dict = {}
 
     def add_client_info(self, socket_fd, socket_obj):
-        if socket_fd not in self._client_info_dict:
+        if socket_fd in self._client_info_dict:
             return RcCode.DATA_EXIST
         self._client_info_dict[socket_fd] = {}
         self._client_info_dict[socket_fd]["socket_obj"] = socket_obj
@@ -116,7 +119,7 @@ class ConsoleServer(threading.Thread):
         if rc != RcCode.SUCCESS:
             return
         for sock_fd in client_info_dict:
-            self._uds_server_socket.uds_client_socket_close(client_info_dict[sock_fd])
+            self._uds_server_socket.uds_client_socket_close(client_info_dict[sock_fd]["socket_obj"])
         self._uds_server_socket.uds_server_socket_close()
 
     def _init_server(self):
@@ -134,7 +137,7 @@ class ConsoleServer(threading.Thread):
         for serial_port_id in range(1, self._num_of_serial_port + 1):
             group_id = (serial_port_id - 1) % 8
             rc = self._serial_port_config.add_serial_port_config(
-                group_id, serial_port_id, "COM{}".format(serial_port_id), 115200, "")
+                group_id, serial_port_id, "COM{}".format(serial_port_id), 115200, "COM{}".format(serial_port_id))
             if rc != RcCode.SUCCESS:
                 self._logger.info(
                     self._logger_system.set_logger_rc_code(
@@ -180,9 +183,35 @@ class ConsoleServer(threading.Thread):
     def client_msg_handle(self, request, client_sock):
         match request:
             case "port_config":
-                port_config_str_ = json.dumps(self._serial_port_config)
-                rc = self._uds_server_socket.uds_client_socket_send(client_sock, port_config_str_)
+                rc, port_group_config_dict = self._serial_port_config.get_serial_port_config_all()
                 if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code(
+                            "Can not get the port config.", rc=rc))
+                    return rc
+                port_config_dict = {}
+                for group_id in port_group_config_dict:
+                    port_config_dict = port_config_dict | port_config_dict | port_group_config_dict[group_id]
+                self._logger.info(
+                    self._logger_system.set_logger_rc_code("Data is ready. {}".format(port_config_dict)))
+
+                json_str = json.dumps(port_config_dict)
+                rc = self._uds_server_socket.uds_client_socket_send(
+                    client_sock, len(json_str).to_bytes(4, byteorder="little"))
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code(
+                            "Send the data length {} failed.".format(len(json_str)), rc=rc))
+                    return rc
+
+                self._logger.info(
+                    self._logger_system.set_logger_rc_code("Send the data {}.".format(json_str)))
+
+                rc = self._uds_server_socket.uds_client_socket_send(client_sock, json_str)
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code(
+                            "Send the data {} failed.".format(json_str), rc=rc))
                     return rc
             case "shutdown":
                 self._running = False
@@ -216,7 +245,7 @@ class ConsoleServer(threading.Thread):
                     self._logger.info(
                         self._logger_system.set_logger_rc_code(
                             "A new client arrived. {}".format(client_socket_obj[0].getpeername())))
-                    client_socket_fd = client_socket_obj.fileno()
+                    client_socket_fd = client_socket_obj[0].fileno()
                     rc = self._client_info.add_client_info(client_socket_fd, client_socket_obj)
                     if rc != RcCode.SUCCESS:
                         self._logger.error(
@@ -224,7 +253,7 @@ class ConsoleServer(threading.Thread):
                                     "Can not add client information {}".format(
                                         client_socket_obj[0].getpeername()), rc=rc))
                         return rc
-                    self._server_mgmt_sock_epoll.register(socket_fd, select.EPOLLIN)
+                    self._server_mgmt_sock_epoll.register(client_socket_fd, select.EPOLLIN)
                 elif event & select.EPOLLIN:
                     rc, client_socket_obj = self._client_info.get_client_info(socket_fd, "socket_obj")
                     if rc != RcCode.SUCCESS:
@@ -255,7 +284,19 @@ class ConsoleServer(threading.Thread):
                         self._logger.error(
                             self._logger_system.set_logger_rc_code(
                                     "Can not client {} request.".format(client_socket_obj[0].getpeername()), rc=rc))
-                        return rc
+                        rc, client_socket_obj = self._client_info.get_client_info(socket_fd, "socket_obj")
+                        if rc != RcCode.SUCCESS:
+                            self._logger.error(
+                                self._logger_system.set_logger_rc_code(
+                                    "Can not get client {} information.".format(socket_fd), rc=rc))
+                            return rc
+                        self._uds_server_socket.uds_client_socket_close(client_socket_obj)
+                        rc = self._client_info.del_client_info(socket_fd)
+                        if rc != RcCode.SUCCESS:
+                            self._logger.error(
+                                self._logger_system.set_logger_rc_code(
+                                    "Can not remove client {} information.".format(socket_fd), rc=rc))
+                            return rc
                 elif event & select.EPOLLHUP:
                     # Client disconnects the socket.
                     # Clear the socket information for request list and epoll.
@@ -297,7 +338,7 @@ class ConsoleServer(threading.Thread):
             self._logger.error(
                 self._logger_system.set_logger_rc_code("Can not get all of the client socket information.", rc=rc))
         for socket_fd in client_sock_dict:
-            self._uds_server_socket.uds_client_socket_close(client_sock_dict[socket_fd])
+            self._uds_server_socket.uds_client_socket_close(client_sock_dict[socket_fd]["socket_obj"])
 
         src, server_socket_fd = self._uds_server_socket.uds_server_socket_fd_get()
         if rc != RcCode.SUCCESS:
@@ -305,7 +346,7 @@ class ConsoleServer(threading.Thread):
                 self._logger_system.set_logger_rc_code("Can not get the server socket FD.", rc=rc))
             return
         else:
-            rc = self._uds_server_socket.uds_client_socket_close(server_socket_fd)
+            rc = self._uds_server_socket.uds_server_socket_close()
             if rc != RcCode.SUCCESS:
                 self._logger.warning(self._logger_system.set_logger_rc_code("Can not release the server socket."))
 

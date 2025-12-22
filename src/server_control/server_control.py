@@ -1,3 +1,6 @@
+import json
+import time
+
 from src.common.rc_code import RcCode
 from src.common.uds_lib import UnixDomainClientSocket
 from src.server_control.server_ansi_parser import ConsoleAnsiEscapeParser
@@ -8,6 +11,7 @@ from src.server_control.server_control_menu import SERVER_CONTROL_GENERAL_PROMPT
 
 
 class ServerControlMode:
+    MAX_BUFFER_SIZE = 1024
     def __init__(self, trans_func_dict, logger_system):
         self._trans_func_dict = trans_func_dict
         self._tx_func = self._trans_func_dict["tx_func"]
@@ -308,14 +312,14 @@ class ServerControlSerialAccessMode(ServerControlMode):
             self._logger.info("Get the data from the ssh server")
             rc = self._uds_client_socket.uds_client_socket_send(read_str)
             if rc != RcCode.SUCCESS:
-                s   elf._logger.error(
+                self._logger.error(
                     self._logger_system.set_logger_rc_code("Can not write the message to console.".format(
                         self._server_socket_file_path), rc=rc))
                 return RcCode.FAILURE
         return RcCode.SUCCESS
 
     def _handle_console_server_data(self):
-        rc, data = self._uds_client_socket.uds_client_socket_recv(1024)
+        rc, data = self._uds_client_socket.uds_client_socket_recv(self.MAX_BUFFER_SIZE)
         if rc == RcCode.SUCCESS:
             if data != "":
                 self._logger.info(self._logger_system.set_logger_rc_code("Read the data: {}".format(data)))
@@ -388,6 +392,32 @@ class ServerControlPortConfigMode(ServerControlMode):
         self._server_prompt = SERVER_CONTROL_PORT_CONFIG_PROMPT
         self._serial_port_id = -1
         self._baud_rate = -1
+        self._uds_serial_port_socket = UnixDomainClientSocket(self._logger_system)
+        self._server_socket_serial_port_path = "/tmp/server_{}.sock"
+        self._uds_mgmt_socket = UnixDomainClientSocket(self._logger_system)
+        self._server_socket_mgmt_path = "/tmp/server_mgmt.sock"
+
+        self._time_stamp = 0
+        self._start_sync = False
+        self._send_request = False
+        self._receive_data = False
+        self._receive_size = 0
+        self._data_str = ""
+        self._remaining_data = 0
+
+    def init_control_mode(self):
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Init control mode for ServerControlSerialAccessMode"))
+        rc = self._uds_mgmt_socket.uds_client_socket_init(non_blocking=False)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Init socket fail."), rc=rc)
+            return rc
+        rc = self._uds_mgmt_socket.uds_client_socket_connect(self._server_socket_mgmt_path)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Connect the console server fail.", rc=rc))
+            return rc
+        self._tx_func(self._clear_screen())
+        return RcCode.SUCCESS
 
     def _parser_request_cmd(self):
         process_data = self._input_buffer.rstrip()
@@ -421,6 +451,33 @@ class ServerControlPortConfigMode(ServerControlMode):
             try:
                 baud_rate = int(process_data)
                 self._logger.info("Get valid baud rate {}".format(baud_rate))
+                self._server_socket_serial_port_path = self._server_socket_serial_port_path.format(self._serial_port_id)
+                rc = self._uds_serial_port_socket.uds_client_socket_init()
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(self._logger_system.set_logger_rc_code("Init socket fail."), rc=rc)
+                    return rc
+                rc = self._uds_serial_port_socket.uds_client_socket_connect(self._server_socket_serial_port_path)
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code("Connect the console server fail.", rc=rc))
+                    return rc
+                rc = self._uds_serial_port_socket.uds_client_socket_send(
+                    "baudrate-{}-{}".format(self._serial_port_id, baud_rate))
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code(
+                            "Can not write the data to the console server side.", rc=rc))
+                    return rc
+                rc, data = self._uds_serial_port_socket.uds_client_socket_recv(self.MAX_BUFFER_SIZE)
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code(
+                            "Can not receive the data from the console server side.", rc=rc))
+                    return rc
+                if data != "OK":
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code(
+                            "Can not set the baud rate to the serial.", rc=rc))
             except ValueError:
                 self._logger.info("Not a integer {}.".format(process_data))
                 self._tx_func(self._clear_screen())
@@ -438,6 +495,81 @@ class ServerControlPortConfigMode(ServerControlMode):
         return rc
 
     def run_system(self):
+        if self._time_stamp == 0 or (time.time() - self._time_stamp) > 10:
+            self._start_sync = True
+            self._send_request = True
+            self._receive_data = False
+            self._receive_size = 0
+            self._data_str = ""
+            self._remaining_data = 0
+            self._time_stamp = time.time()
+
+        if self._start_sync:
+            if self._send_request:
+                rc = self._uds_mgmt_socket.uds_client_socket_send("port_config")
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code("Can not get the current port config.", rc=rc))
+                    return rc
+
+                self._logger.info(self._logger_system.set_logger_rc_code("Send request for port config completely."))
+                self._send_request = False
+            else:
+                if not self._receive_data:
+                    rc, data = self._uds_mgmt_socket.uds_client_socket_recv(4)
+                    if rc == RcCode.DATA_NOT_READY:
+                        return RcCode.SUCCESS
+                    if rc != RcCode.SUCCESS:
+                        self._logger.error(
+                            self._logger_system.set_logger_rc_code("Can not receive the data size.", rc=rc))
+                        return rc
+                    self._receive_size = int.from_bytes(data.encode('utf-8'), byteorder='little')
+                    self._logger.info(
+                        self._logger_system.set_logger_rc_code("Receive data length for port config completely."))
+                    self._receive_data = True
+                else:
+                    rc, data = self._uds_mgmt_socket.uds_client_socket_recv(self._receive_size)
+                    if rc == RcCode.DATA_NOT_READY:
+                        return RcCode.SUCCESS
+                    if rc != RcCode.SUCCESS:
+                        self._logger.error(
+                            self._logger_system.set_logger_rc_code("Can not receive the data.", rc=rc))
+                        return rc
+                    self._data_str = self._data_str + data
+                    remaining_data = self._remaining_data - len(data)
+
+                    if remaining_data <= 0:
+                        self._logger.info(
+                            self._logger_system.set_logger_rc_code("Receive data for port config completely."))
+                        port_config_dict = json.loads(self._data_str)
+                        self._logger.info(
+                            self._logger_system.set_logger_rc_code(
+                                "Convert the data from JSON string to dict. {}").format(port_config_dict))
+                        menu_format_str = ""
+                        for i in range(1, int(self._num_of_serial_port_id / 2) + 1):
+                            first_part = str(i)
+                            second_part = str(int(i + self._num_of_serial_port_id / 2))
+                            menu_format_str =\
+                                menu_format_str + ("{:<2}. {:<5}               - {:<10d}    |"
+                                                   "   {:<2}. {:<5}               - {:<10d}\r\n").format(
+                                    first_part, port_config_dict[first_part]['alias'], port_config_dict[first_part]['baud_rate'],
+                                    second_part, port_config_dict[second_part]['alias'], port_config_dict[second_part]['baud_rate'],
+                                )
+                        self._menu_str = server_control_port_config_menu.format(menu_format_str)
+
+                        self._tx_func(self._clear_screen())
+                        self._tx_func(self._menu_str)
+                        if self._config_step == self.CONFIG_STEP_INPUT_PORT_ID:
+                            self._tx_func(SERVER_CONTROL_PORT_CONFIG_PROMPT)
+                        else:
+                            self._tx_func(SERVER_CONTROL_PORT_CONFIG_PROMPT + str(self._serial_port_id) + "\r\n")
+                            self._tx_func(SERVER_CONTROL_USER_CONFIG_PROMPT)
+                        self._logger.info(
+                            self._logger_system.set_logger_rc_code("Beauty the output completely."))
+
+                        self._start_sync = False
+                return RcCode.SUCCESS
+
         rc = RcCode.SUCCESS
         if (self._rx_ready_func is None or
             self._rx_ready_func()):
@@ -449,11 +581,21 @@ class ServerControlPortConfigMode(ServerControlMode):
                 if rc != RcCode.SUCCESS:
                     rc = self._parse_system_control_ascii_value(ascii_val)
                     if rc == RcCode.EXIT_MENU:
-                        return rc
+                        rc = self._uds_mgmt_socket.uds_client_socket_close()
+                        if rc != RcCode.SUCCESS:
+                            self._logger.error(
+                                self._logger_system.set_logger_rc_code("Can not close the management socket.", rc=rc))
+                        return RcCode.EXIT_MENU
                     if rc == RcCode.DATA_NOT_FOUND:
                         rc = self._parser_request_cmd()
                         if rc == RcCode.CHANGE_MENU:
-                            return rc
+                            if self.next_menu != ServerControlMenu.SERVER_CONTROL_PORT_CONFIG_MENU:
+                                rc = self._uds_mgmt_socket.uds_client_socket_close()
+                                if rc != RcCode.SUCCESS:
+                                    self._logger.error(
+                                        self._logger_system.set_logger_rc_code(
+                                            "Can not close the management socket.", rc=rc))
+                            return RcCode.CHANGE_MENU
                 if rc != RcCode.SUCCESS:
                     rc = self._save_user_input(ascii_val)
         return rc
