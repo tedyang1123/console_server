@@ -1,9 +1,10 @@
 from src.common.rc_code import RcCode
 from src.common.uds_lib import UnixDomainClientSocket
 from src.server_control.server_ansi_parser import ConsoleAnsiEscapeParser
-from src.server_control.server_control_menu import SERVER_CONTROL_PROMPT, ServerControlAccessModeMenu, \
+from src.server_control.server_control_menu import SERVER_CONTROL_GENERAL_PROMPT, ServerControlAccessModeMenu, \
     ServerControlMgmtModeMenu, ServerControlMenu, server_control_mgmt_mode_menu, server_control_access_mode_menu, \
-    server_control_port_access_menu
+    server_control_port_access_menu, SERVER_CONTROL_PORT_CONFIG_PROMPT, SERVER_CONTROL_USER_CONFIG_PROMPT, \
+    server_control_port_config_menu
 
 
 class ServerControlMode:
@@ -21,6 +22,7 @@ class ServerControlMode:
         self._ansi_escape_parser = ConsoleAnsiEscapeParser()
         self._menu_str = ""
         self.next_menu = None
+        self._server_prompt = SERVER_CONTROL_GENERAL_PROMPT
 
     def _clear_screen(self):
         return chr(27) + "[2J" + chr(27) + "[3J" + chr(27) + "[1;1H"
@@ -60,7 +62,7 @@ class ServerControlMode:
                     case "":
                         self._tx_func(self._clear_screen())
                         self._tx_func(self._menu_str)
-                        self._tx_func(SERVER_CONTROL_PROMPT)
+                        self._tx_func(self._server_prompt)
                         self._input_buffer = ''
                         rc = RcCode.SUCCESS
                     case _:
@@ -81,7 +83,7 @@ class ServerControlMode:
     def init_control_mode(self):
         self._tx_func(self._clear_screen())
         self._tx_func(self._menu_str)
-        self._tx_func(SERVER_CONTROL_PROMPT)
+        self._tx_func(self._server_prompt)
         return RcCode.SUCCESS
 
 
@@ -89,7 +91,7 @@ class ServerControlMgmtMode(ServerControlMode):
     def __init__(self, trans_func_dict, logger_system):
         ServerControlMode.__init__(self, trans_func_dict, logger_system)
         self._menu_str = server_control_mgmt_mode_menu
-        self._prompt_len = len(SERVER_CONTROL_PROMPT)
+        self._prompt_len = len(self._server_prompt)
 
     def _parser_request_cmd(self):
         process_data = self._input_buffer.rstrip()
@@ -119,13 +121,13 @@ class ServerControlMgmtMode(ServerControlMode):
                 case _:
                     self._tx_func(self._clear_screen())
                     self._tx_func(self._menu_str)
-                    self._tx_func(SERVER_CONTROL_PROMPT)
+                    self._tx_func(self._server_prompt)
                     rc = RcCode.SUCCESS
         except ValueError:
             self._logger.warning("Data is not a integer data.")
             self._tx_func(self._clear_screen())
             self._tx_func(self._menu_str)
-            self._tx_func(SERVER_CONTROL_PROMPT)
+            self._tx_func(self._server_prompt)
             rc = RcCode.SUCCESS
         self._input_buffer = ""
         return rc
@@ -154,7 +156,7 @@ class ServerControlAccessMode(ServerControlMode):
     def __init__(self, trans_func_dict, logger_system):
         ServerControlMode.__init__(self, trans_func_dict, logger_system)
         self._menu_str = server_control_access_mode_menu
-        self._prompt_len = len(SERVER_CONTROL_PROMPT)
+        self._prompt_len = len(self._server_prompt)
 
     def _parser_request_cmd(self):
         process_data = self._input_buffer.rstrip()
@@ -171,12 +173,12 @@ class ServerControlAccessMode(ServerControlMode):
                 case _:
                     self._tx_func(self._clear_screen())
                     self._tx_func(self._menu_str)
-                    self._tx_func(SERVER_CONTROL_PROMPT)
+                    self._tx_func(self._server_prompt)
                     rc = RcCode.SUCCESS
         except ValueError:
             self._tx_func(self._clear_screen())
             self._tx_func(self._menu_str)
-            self._tx_func(SERVER_CONTROL_PROMPT)
+            self._tx_func(self._server_prompt)
             rc = RcCode.SUCCESS
         self._input_buffer = ""
         return rc
@@ -210,7 +212,7 @@ class ServerControlPortAccessMode(ServerControlMode):
         ServerControlMode.__init__(self, trans_func_dict, logger_system)
 
         self._menu_str = server_control_port_access_menu
-        self._prompt_len = len(SERVER_CONTROL_PROMPT)
+        self._prompt_len = len(self._server_prompt)
         self.serial_port_id = -1
 
     def _parser_request_cmd(self):
@@ -225,12 +227,12 @@ class ServerControlPortAccessMode(ServerControlMode):
             else:
                 self._tx_func(self._clear_screen())
                 self._tx_func(self._menu_str)
-                self._tx_func(SERVER_CONTROL_PROMPT)
+                self._tx_func(self._server_prompt)
                 rc = RcCode.SUCCESS
         except ValueError:
             self._tx_func(self._clear_screen())
             self._tx_func(self._menu_str)
-            self._tx_func(SERVER_CONTROL_PROMPT)
+            self._tx_func(self._server_prompt)
             rc = RcCode.SUCCESS
         self._input_buffer = ""
         return rc
@@ -306,7 +308,7 @@ class ServerControlSerialAccessMode(ServerControlMode):
             self._logger.info("Get the data from the ssh server")
             rc = self._uds_client_socket.uds_client_socket_send(read_str)
             if rc != RcCode.SUCCESS:
-                self._logger.error(
+                s   elf._logger.error(
                     self._logger_system.set_logger_rc_code("Can not write the message to console.".format(
                         self._server_socket_file_path), rc=rc))
                 return RcCode.FAILURE
@@ -372,3 +374,86 @@ class ServerControlSerialAccessMode(ServerControlMode):
             self._logger.error(self._logger_system.set_logger_rc_code("Process Console data fail. rc: {}".format(rc)))
             return rc
         return RcCode.SUCCESS
+
+
+class ServerControlPortConfigMode(ServerControlMode):
+    CONFIG_STEP_INPUT_PORT_ID = 1
+    CONFIG_STEP_INPUT_BAUD_RATE = 2
+
+    def __init__(self, trans_func_dict, num_of_serial_port_id, logger_system):
+        self._num_of_serial_port_id = num_of_serial_port_id
+        ServerControlMode.__init__(self, trans_func_dict, logger_system)
+        self._menu_str = server_control_port_config_menu
+        self._config_step = self.CONFIG_STEP_INPUT_PORT_ID
+        self._server_prompt = SERVER_CONTROL_PORT_CONFIG_PROMPT
+        self._serial_port_id = -1
+        self._baud_rate = -1
+
+    def _parser_request_cmd(self):
+        process_data = self._input_buffer.rstrip()
+        if self._config_step == self.CONFIG_STEP_INPUT_PORT_ID:
+            try:
+                serial_port_id = int(process_data)
+                if 1 <= serial_port_id <= self._num_of_serial_port_id:
+                    self._serial_port_id = serial_port_id
+                    self._server_prompt = SERVER_CONTROL_USER_CONFIG_PROMPT
+                    self._logger.info("Get the valid port ID {}.".format(serial_port_id))
+                    self._config_step = self.CONFIG_STEP_INPUT_BAUD_RATE
+                    self.next_menu = ServerControlMenu.SERVER_CONTROL_PORT_CONFIG_MENU
+                    self._tx_func("\r\n")
+                    self._tx_func(self._server_prompt)
+                    rc = RcCode.SUCCESS
+                else:
+                    self._logger.info("Get the invalid port ID {}.".format(serial_port_id))
+                    self._tx_func(self._clear_screen())
+                    self._tx_func(self._menu_str)
+                    self._tx_func(self._server_prompt)
+                    self.next_menu = ServerControlMenu.SERVER_CONTROL_PORT_CONFIG_MENU
+                    rc = RcCode.CHANGE_MENU
+            except ValueError:
+                self._logger.info("Not a integer {}.".format(process_data))
+                self._tx_func(self._clear_screen())
+                self._tx_func(self._menu_str)
+                self._tx_func(self._server_prompt)
+                self.next_menu = ServerControlMenu.SERVER_CONTROL_PORT_CONFIG_MENU
+                rc = RcCode.CHANGE_MENU
+        else:
+            try:
+                baud_rate = int(process_data)
+                self._logger.info("Get valid baud rate {}".format(baud_rate))
+            except ValueError:
+                self._logger.info("Not a integer {}.".format(process_data))
+                self._tx_func(self._clear_screen())
+                self._tx_func(self._menu_str)
+                self._tx_func(self._server_prompt)
+                self.next_menu = ServerControlMenu.SERVER_CONTROL_PORT_CONFIG_MENU
+
+            self._config_step = self.CONFIG_STEP_INPUT_PORT_ID
+            self._server_prompt = SERVER_CONTROL_PORT_CONFIG_PROMPT
+            self._serial_port_id = -1
+            self._baud_rate = -1
+            rc = RcCode.CHANGE_MENU
+        self._input_buffer = ""
+        self._logger.info(self._logger_system.set_logger_rc_code("Run command", rc=rc))
+        return rc
+
+    def run_system(self):
+        rc = RcCode.SUCCESS
+        if (self._rx_ready_func is None or
+            self._rx_ready_func()):
+            read_str = self._rx_func(5)
+            for ascii_val in read_str:
+                rc = RcCode.FAILURE
+                if ascii_val == 0x1b or self._enable_escape_key:
+                    rc = self._parse_escape_ascii_value(ascii_val)
+                if rc != RcCode.SUCCESS:
+                    rc = self._parse_system_control_ascii_value(ascii_val)
+                    if rc == RcCode.EXIT_MENU:
+                        return rc
+                    if rc == RcCode.DATA_NOT_FOUND:
+                        rc = self._parser_request_cmd()
+                        if rc == RcCode.CHANGE_MENU:
+                            return rc
+                if rc != RcCode.SUCCESS:
+                    rc = self._save_user_input(ascii_val)
+        return rc
