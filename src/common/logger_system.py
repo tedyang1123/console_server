@@ -17,7 +17,7 @@ class LoggerSystem:
             datefmt="%Y-%m-%d %H:%M:%S",
         )
         self._screen_handler = logging.StreamHandler()
-        self._screen_handler.setLevel(logging.DEBUG)
+        self._screen_handler.setLevel(logging.WARNING)
         self._screen_handler.setFormatter(self._formatter)
 
         self._file_handler = logging.FileHandler('/var/log/{}.log'.format(self._logger_name))

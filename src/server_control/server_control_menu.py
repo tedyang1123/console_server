@@ -31,36 +31,15 @@ server_control_port_access_menu: str =\
 ====================================================================================\r\n\
 : Welcome to Console Server                                                         \r\n\
 ====================================================================================\r\n\
- 1. COM1                                |   25. COM25                               \r\n\
- 2. COM2                                |   26. COM26                               \r\n\
- 3. COM3                                |   27. COM27                               \r\n\
- 4. COM4                                |   28. COM28                               \r\n\
- 5. COM5                                |   29. COM29                               \r\n\
- 6. COM6                                |   30. COM30                               \r\n\
- 7. COM7                                |   31. COM31                               \r\n\
- 8. COM8                                |   32. COM32                               \r\n\
- 9. COM9                                |   33. COM33                               \r\n\
-10. COM10                               |   34. COM34                               \r\n\
-11. COM11                               |   35. COM35                               \r\n\
-12. COM12                               |   36. COM36                               \r\n\
-13. COM13                               |   37. COM37                               \r\n\
-14. COM14                               |   38. COM38                               \r\n\
-15. COM15                               |   39. COM39                               \r\n\
-16. COM16                               |   40. COM40                               \r\n\
-17. COM17                               |   41. COM41                               \r\n\
-18. COM18                               |   42. COM42                               \r\n\
-19. COM19                               |   43. COM43                               \r\n\
-20. COM20                               |   44. COM44                               \r\n\
-21. COM21                               |   45. COM45                               \r\n\
-22. COM22                               |   46. COM46                               \r\n\
-23. COM23                               |   47. COM47                               \r\n\
-24. COM24                               |   48. COM48                               \r\n\
+{}\r\n\
 \r\n\
 Q. Exit\r\n\
 "
 
+SERVER_CONTROL_ITEM_SELECT_PROMPT = "Enter Action ID or Q/q> "
 SERVER_CONTROL_PORT_CONFIG_PROMPT = "Enter Port ID or Q/q> "
 SERVER_CONTROL_USER_CONFIG_PROMPT = "Enter baud rate or Q/q> "
+SERVER_CONTROL_ALIAS_NAME_PROMPT = "Enter alias name or Q/q> "
 
 server_control_port_config_menu =\
 "\
@@ -69,6 +48,8 @@ server_control_port_config_menu =\
 ====================================================================================\r\n\
 {}\r\n\
 \r\n\
+A/a. Change the alisa name for the port.\r\n\
+B/b. Change the baud rate for the port.\r\n\
 Q. Exit\r\n\
 "\
 

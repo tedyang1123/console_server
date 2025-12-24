@@ -82,9 +82,9 @@ class ServerControlHandlerMenuMode:
                         self._server_control_mode = ServerControlMgmtMode(self._trans_func_dict, self._logger_system)
                     case ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU:
                         self._logger.warning(self._logger_system.set_logger_rc_code("Change to Port Access mode menu"))
+                        self._current_menu = self._server_control_mode.next_menu
                         num_of_serial_port = (
                             self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port())
-                        self._current_menu = self._server_control_mode.next_menu
                         self._server_control_mode = ServerControlPortAccessMode(
                             self._trans_func_dict, num_of_serial_port, self._logger_system)
                     case ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU:
@@ -108,7 +108,10 @@ class ServerControlHandlerMenuMode:
                     case ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU:
                         self._logger.warning(self._logger_system.set_logger_rc_code("Change to Access mode menu"))
                         self._current_menu = self._server_control_mode.next_menu
-                        self._server_control_mode = ServerControlAccessMode(self._trans_func_dict, self._logger_system)
+                        num_of_serial_port = (
+                            self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port())
+                        self._server_control_mode = ServerControlAccessMode(
+                            self._trans_func_dict, num_of_serial_port, self._logger_system)
                     case ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU:
                         self._logger.warning(
                             self._logger_system.set_logger_rc_code("Change to Port Access mode menu"))
@@ -162,7 +165,7 @@ class ServerControlHandlerMenuMode:
                                 "Exit Serial Port mode menu, into the Port config mode menu"))
                         self._server_control_mode = ServerControlMgmtMode(
                             self._trans_func_dict, self._logger_system)
-                        self._current_menu = ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU
+                        self._current_menu = ServerControlMenu.SERVER_CONTROL_MGMT_MODE_MENU
             else:
                 match self._current_menu:
                     case ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU:
@@ -173,6 +176,8 @@ class ServerControlHandlerMenuMode:
                         self._logger.info(
                             self._logger_system.set_logger_rc_code(
                                 "Exit Port Access mode menu, into the Access mode menu"))
+                        num_of_serial_port = (
+                            self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port())
                         self._server_control_mode = ServerControlAccessMode(self._trans_func_dict, self._logger_system)
                         self._current_menu = ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU
                     case ServerControlMenu.SERVER_CONTROL_SERIAL_PORT_ACCESS_MENU:
@@ -188,9 +193,11 @@ class ServerControlHandlerMenuMode:
                         self._logger.info(
                             self._logger_system.set_logger_rc_code(
                                 "Exit Serial Port mode menu, into the Port config mode menu"))
+                        num_of_serial_port = (
+                            self._ssh_server_mgr_dict["_ssh_server_serial_port_mgr"].get_num_of_serial_port())
                         self._server_control_mode = ServerControlAccessMode(
-                            self._trans_func_dict, self._logger_system)
-                        self._current_menu = ServerControlMenu.SERVER_CONTROL_PORT_ACCESS_MENU
+                            self._trans_func_dict, num_of_serial_port, self._logger_system)
+                        self._current_menu = ServerControlMenu.SERVER_CONTROL_ACCESS_MODE_MENU
             self._reinit = True
             self._login = False
         return RcCode.SUCCESS

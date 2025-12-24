@@ -75,15 +75,13 @@ class ConsoleServerClientInfoDict:
     def del_client_info(self, socket_fd):
         if socket_fd not in self._client_info_dict:
             return RcCode.DATA_NOT_FOUND
-        if socket_fd not in self._client_info_dict:
-            return RcCode.DATA_NOT_FOUND
         del self._client_info_dict[socket_fd]
         return RcCode.SUCCESS
 
     def get_client_info(self, socket_fd, field=None):
         if socket_fd not in self._client_info_dict:
             return RcCode.DATA_NOT_FOUND, None
-        if socket_fd not in self._client_info_dict:
+        if field not in self._client_info_dict[socket_fd]:
             return RcCode.DATA_NOT_FOUND, None
         if field is None:
             return RcCode.SUCCESS, self._client_info_dict[socket_fd]

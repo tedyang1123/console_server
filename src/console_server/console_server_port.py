@@ -53,12 +53,14 @@ class ConsoleServerSerialPort:
             self._serial_config["com_port"].rts = False
             self._serial_config["com_port"].dtr = False
             self._serial_config["com_port"].open()
-        except SerialException:
+        except SerialException as e:
             self._logger.error(
                 self._logger_system.set_logger_rc_code("The serial port {} can not open".format(self._serial_port_id)))
             self._logger.error(
                 self._logger_system.set_logger_rc_code(
                     "The dev port path is {}".format(self._serial_config["dev_port"])))
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(e))
             return RcCode.DEVICE_NOT_FOUND
 
         # Check if serial port has been opened.
@@ -70,6 +72,7 @@ class ConsoleServerSerialPort:
             self._logger.error(
                 self._logger_system.set_logger_rc_code("The serial port {} is not ready.".format(self._serial_port_id)))
             return RcCode.FAILURE
+        self._current_user = self._current_user + 1
         return RcCode.SUCCESS
 
     def close_com_port(self):
@@ -88,16 +91,54 @@ class ConsoleServerSerialPort:
             self._logger.error(
                 self._logger_system.set_logger_rc_code("The serial port {} can not close".format(self._serial_port_id)))
             rc = RcCode.DEVICE_NOT_FOUND
+        self._current_user = self._current_user - 1
         return rc
+    
+    def reopen_com_port(self):
+        # Close the serial port.
+        try:
+            self._logger.info(self._serial_config)
+            self._serial_config["com_port"].close()
+            self._serial_config["com_port"].baudrate = self._serial_config["baud_rate"]
+            self._serial_config["com_port"].timeout = 0
+            self._serial_config["com_port"].port = self._serial_config["dev_port"]
+            self._serial_config["com_port"].rts = False
+            self._serial_config["com_port"].dtr = False
+            self._logger.info(self._serial_config["com_port"])
+            self._serial_config["com_port"].open()
+            rc = RcCode.SUCCESS
+        except SerialException as e:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("The serial port {} can not open".format(self._serial_port_id)))
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "The dev port path is {}".format(self._serial_config["dev_port"])))
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(e))
+            return RcCode.DEVICE_NOT_FOUND
+
+        # Check if serial port has been opened.
+        cnt = 0
+        while not self._serial_config["com_port"].is_open and cnt < 5:
+            time.sleep(1)
+            cnt = cnt + 1
+        if cnt >= 5:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("The serial port {} is not ready.".format(self._serial_port_id)))
+            return RcCode.FAILURE
+        self._current_user = self._current_user + 1
+        return rc
+
 
     def set_com_port_description(self, description):
         self._serial_port_description = description
         return RcCode.SUCCESS
 
-    def read_com_port_data(self, buf_size=50):
+    def read_com_port_data(self, buf_size=1024):
         data = None
         try:
             data = self._serial_config["com_port"].read(size=buf_size)
+            self._logger.info("Read data from {} data {}".format(self._serial_config["dev_port"], data))
             rc = RcCode.SUCCESS
         except OSError:
             self._logger.warning(
@@ -107,7 +148,8 @@ class ConsoleServerSerialPort:
 
     def write_com_port_data(self, data):
         try:
-            self._serial_config["com_port"].write(data)
+            self._logger.info("Write data from {} data {}".format(self._serial_config["dev_port"], data.encode()))
+            self._serial_config["com_port"].write(data.encode())
             self._serial_config["com_port"].flush()
             rc = RcCode.SUCCESS
         except OSError:
@@ -155,30 +197,5 @@ class ConsoleServerSerialPort:
                 self._logger_system.set_logger_rc_code("Invalid baud rate {}".format(self._serial_port_id)))
             return RcCode.INVALID_VALUE
         self._serial_config["baud_rate"] = rate
-
-        try:
-            # Close the serial port
-            self._serial_config["com_port"].close()
-
-            # Apply the new baud rate
-            self._serial_config["com_port"].baud_rate = rate
-
-            # Open the serial to apply the new baud rate
-            self._serial_config["com_port"].open()
-
-            # Check if the port has been open
-            cnt = 0
-            while not self._serial_config["com_port"].is_open and cnt < 5:
-                time.sleep(1)
-                cnt = cnt + 1
-            if cnt >= 5:
-                self._logger.warning(
-                    self._logger_system.set_logger_rc_code("The port {} is not ready.".format(self._serial_port_id)))
-                return RcCode.FAILURE
-            rc = RcCode.SUCCESS
-        except OSError:
-            self._logger.warning(
-                self._logger_system.set_logger_rc_code("The port {} can not close".format(self._serial_port_id)))
-            rc = RcCode.DEVICE_NOT_FOUND
-        return rc
+        return RcCode.SUCCESS
 

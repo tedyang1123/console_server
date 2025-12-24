@@ -195,22 +195,24 @@ class ConsoleServerHandler(threading.Thread):
             socket_info_dict = serial_port_fd_info[serial_port_fd]
             if not socket_info_dict["status"]:
                 # Socket has been closed
+                self._logger.info(
+                    self._logger_system.set_logger_rc_code("Client is closed"))
                 continue
 
             # Send the message to the other client
-            rc = self._uds_server_socket.uds_client_socket_send(socket_info_dict["socket"], msg)
+            rc = self._uds_server_socket.uds_client_socket_send(socket_info_dict["socket_obj"], msg)
             if rc != RcCode.SUCCESS:
                 # Can not send the data to the client.
                 # Force close the socket and set the socket to not running.
                 self._logger.error(
                     self._logger_system.set_logger_rc_code(
                         "We find a client {} has some errors. Close this socket".format(
-                            socket_info_dict["socket"][0].getpeername())))
-                rc = self._uds_server_socket.uds_client_socket_close(socket_info_dict["socket"])
+                            socket_info_dict["socket_obj"][0].getpeername())))
+                rc = self._uds_server_socket.uds_client_socket_close(socket_info_dict["socket_obj"])
                 if rc != RcCode.SUCCESS:
                     self._logger.warning(
                         self._logger_system.set_logger_rc_code("We try to close the client {} but failed.".format(
-                            socket_info_dict["socket"][0].getpeername())))
+                            socket_info_dict["socket_obj"][0].getpeername())))
                 socket_info_dict["status"] = False
         return RcCode.SUCCESS
 
@@ -218,36 +220,6 @@ class ConsoleServerHandler(threading.Thread):
         self._logger.info(
             self._logger_system.set_logger_rc_code(
                 "Control server sent the data and we will broadcast it other user and serial port."))
-        rc, serial_port_fd_dict = self._serial_port_info.get_serial_port_info(serial_port_id, "fd_dict")
-        if rc != RcCode.SUCCESS:
-            self._logger.error(
-                self._logger_system.set_logger_rc_code("The serial port does not exist in the serial port DB."))
-            return rc
-        for serial_port_fd in serial_port_fd_dict:
-            socket_info_dict = serial_port_fd_dict[serial_port_fd]
-            socket_obj = socket_info_dict["socket_obj"]
-            if socket_obj[0].fileno() == socket_no:
-                # Socket is the source socket.
-                continue
-            if not socket_info_dict["status"]:
-                # Socket has been closed
-                continue
-
-            rc = self._uds_server_socket.uds_client_socket_send(socket_obj, msg)
-            if rc != RcCode.SUCCESS:
-                # Can not send the data to the client.
-                # Force close the socket and set the socket to not running.
-                self._logger.error(
-                    self._logger_system.set_logger_rc_code(
-                        "We find a client {} has some errors. Close this socket".format(
-                            socket_obj[0].getpeername())))
-                rc = self._uds_server_socket.uds_client_socket_close(socket_obj)
-                if rc != RcCode.SUCCESS:
-                    self._logger.warning(
-                        self._logger_system.set_logger_rc_code(
-                            "We try to close the client {} but failed.".format(
-                                socket_obj[0].getpeername())))
-                socket_info_dict["status"] = False
 
         # Send the data to serial port.
         rc, serial_port_obj = self._serial_port_info.get_serial_port_info(serial_port_id, "serial_port_obj")
@@ -256,9 +228,6 @@ class ConsoleServerHandler(threading.Thread):
                 self._logger_system.set_logger_rc_code(
                     "The serial port {} is not found.".format(serial_port_id), rc=rc))
             return rc
-
-        if TEST_MODE:
-            return RcCode.SUCCESS
 
         # Check if the serial port has been opened
         rc, state = serial_port_obj.is_open_com_port()
@@ -475,6 +444,20 @@ class ConsoleServerHandler(threading.Thread):
                         "The serial port {} is not found.".format(serial_port_id), rc))
                 return rc
 
+            rc = serial_port_obj.set_com_port_baud_rate(baud_rate)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code(
+                        "The serial port {} can not be reopened.".format(serial_port_id), rc))
+                return rc
+
+            rc = serial_port_obj.reopen_com_port()
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code(
+                        "The serial port {} can not be reopened.".format(serial_port_id), rc))
+                return rc
+
             # Update the baud rate in the serial port config
             self._serial_port_config_dict[serial_port_id]["baud_rate"] = baud_rate
 
@@ -490,17 +473,53 @@ class ConsoleServerHandler(threading.Thread):
                                 "OK", socket_obj["socket"][0].getpeername())))
                 return rc
 
-            rc = serial_port_obj.close_com_port()
+            self._logger.info(
+                        self._logger_system.set_logger_rc_code(
+                            "The request has been processed 'baudrate' successfully."))
+            return RcCode.SUCCESS
+        
+        group = re.match("alias-([0-9]+)-(.+)", request_cmd)
+        if group is not None:
+            # Get the first parameter. It is a port ID.
+            serial_port_id = int(group[1], 10)
+
+            # Check if serial port ID is valid
+            if serial_port_id not in self._serial_port_config_dict:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code(
+                        "The port ID is not in the port list. The valid port id is {}".format(
+                            self._serial_port_config_dict)))
+                return RcCode.INVALID_VALUE
+
+
+            # Get the second parameter. It is a baud rate.
+            alisa_name = group[2]
+
+            self._logger.info(
+                self._logger_system.set_logger_rc_code("The request is 'baudrate' and we start process it."))
+
+            # Get the socket object from the server socket information DB
+            rc, socket_obj = self._client_request_info.get_client_request_info(socket_fd, "socket_obj")
             if rc != RcCode.SUCCESS:
                 self._logger.error(
                     self._logger_system.set_logger_rc_code(
-                        "The serial port {} can not be opened.".format(serial_port_id), rc))
+                        "Can not add the socket FD {} information to the server socket DB".format(
+                            socket_obj[0].getpeername()), rc))
                 return rc
-            rc = serial_port_obj.open_com_port()
+
+            # Update the baud rate in the serial port config
+            self._serial_port_config_dict[serial_port_id]["alias"] = alisa_name
+
+            self._logger.info(
+                self._logger_system.set_logger_rc_code("The request is 'baudrate' and we process it DONE."))
+
+            # Notify the client that command executed successful
+            rc = self._uds_server_socket.uds_client_socket_send(socket_obj, "OK")
             if rc != RcCode.SUCCESS:
                 self._logger.error(
-                    self._logger_system.set_logger_rc_code(
-                        "The serial port {} can not be opened.".format(serial_port_id), rc))
+                        self._logger_system.set_logger_rc_code(
+                            "Can not reply the message to client. msg: {}, host: {}".format(
+                                "OK", socket_obj["socket"][0].getpeername())))
                 return rc
 
             self._logger.info(
@@ -865,7 +884,7 @@ class ConsoleServerHandler(threading.Thread):
         self._running = True
         self._thread_event.set()
         while self._running:
-            # Process the server request.
+            # Process the client request.
             rc = self._server_event_main_process()
             if rc != RcCode.SUCCESS:
                 self._logger.error(
@@ -873,7 +892,7 @@ class ConsoleServerHandler(threading.Thread):
                 self._running = False
                 break
 
-            # Process the client event.
+            # Process the client service.
             rc = self._client_request_main_process()
             if rc != RcCode.SUCCESS:
                 self._logger.error(
