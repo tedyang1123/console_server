@@ -4,6 +4,7 @@ from enum import IntEnum, auto
 class RcCode(IntEnum):
     SUCCESS = 0
     FAILURE = auto()
+    ERROR = auto()
     REQUEST_DENIED = auto()
     FILE_NOT_FOUND = auto()
     FILE_NOT_READ = auto()
@@ -28,6 +29,8 @@ class RcCode(IntEnum):
     USER_EXIST = auto()
     USER_NOT_FOUND = auto()
     PERMISSION_DENIED = auto()
+    QUEUE_CLOSED = auto()
+    QUEUE_OPEN = auto()
 
     @classmethod
     def covert_rc_to_string(cls, rc):
@@ -35,6 +38,8 @@ class RcCode(IntEnum):
             return "SUCCESS"
         elif rc == cls.FAILURE:
             return "FAILURE"
+        elif rc == cls.ERROR:
+            return "ERROR"
         elif rc == cls.REQUEST_DENIED:
             return "REQUEST_DENIED"
         elif rc == cls.FILE_NOT_FOUND:
@@ -83,6 +88,10 @@ class RcCode(IntEnum):
             return "USER_NOT_FOUND"
         elif rc == cls.PERMISSION_DENIED:
             return "PERMISSION_DENIED"
+        elif rc == cls.QUEUE_CLOSED:
+            return "QUEUE_CLOSED"
+        elif rc == cls.QUEUE_OPEN:
+            return "QUEUE_OPEN"
         else:
             return None
 

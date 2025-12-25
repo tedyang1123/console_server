@@ -1,8 +1,16 @@
 import errno
+import json
 import os
 import socket
 
 from src.common.rc_code import RcCode
+
+
+def serialize_data(data_dict):
+    return json.dumps(data_dict)
+
+def deserialize_data(data_str):
+    return json.loads(data_str)
 
 
 class UnixDomainServerSocket:
