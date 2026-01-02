@@ -6,8 +6,9 @@ from src.common.rc_code import RcCode
 
 
 class ConsoleServerSerialPort:
-    def __init__(self, port_id, logger_system):
+    def __init__(self, port_id, baud_rate, logger_system):
         self._serial_port_id = port_id
+        self._baud_rate = baud_rate
 
         self._logger_system = logger_system
         self._logger = self._logger_system.get_logger()
@@ -28,8 +29,7 @@ class ConsoleServerSerialPort:
         self._serial_config = {
             "com_port": Serial(),
             "dev_port": "/dev/ttyUSB{}".format(self._serial_port_id - 1),
-            "baud_rate": 115200,
-            "usb_id": ""
+            "baud_rate": self._baud_rate
         }
         return RcCode.SUCCESS
 

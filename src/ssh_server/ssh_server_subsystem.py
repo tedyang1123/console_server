@@ -52,9 +52,11 @@ class SshServerSubsystem(threading.Thread):
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_socket.bind((self._ssh_ip_addr, port_id))
-        except OSError:
+        except OSError as e:
             self._logger.error(
                 self._logger_system.set_logger_rc_code("can not init server socket."))
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(e))
             return RcCode.FAILURE, None
         return RcCode.SUCCESS, server_socket
 

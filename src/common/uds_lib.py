@@ -19,7 +19,7 @@ class UnixDomainServerSocket:
             return RcCode.DATA_NOT_FOUND, None
         return RcCode.SUCCESS, self._uds_socket.fileno()
 
-    def uds_server_socket_init(self):
+    def uds_server_socket_init(self, blocking=True):
         if os.path.exists(self._uds_server_file_path):
             os.remove(self._uds_server_file_path)
         self._logger.info(
@@ -29,16 +29,18 @@ class UnixDomainServerSocket:
             self._uds_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self._uds_socket.bind(self._uds_server_file_path)
             self._uds_socket.listen(self._max_client)
+            self._uds_socket.setblocking(blocking)
         except OSError:
             return RcCode.FAILURE
         return RcCode.SUCCESS
 
-    def uds_server_socket_accept(self):
+    def uds_server_socket_accept(self, blocking=True):
         try:
             client_socket = self._uds_socket.accept()
             self._logger.info(
                 self._logger_system.set_logger_rc_code(
                     "Accept a new client {}.".format(client_socket[0].getpeername())))
+            client_socket.setblocking(blocking)
         except OSError:
             return RcCode.FAILURE, None
         return RcCode.SUCCESS, client_socket
@@ -51,45 +53,43 @@ class UnixDomainServerSocket:
             self._logger.info(self._logger_system.set_logger_rc_code("Can not close the server socket"))
         return RcCode.SUCCESS
 
-    def uds_client_socket_send(self, client_socket, data):
+
+class UnixDomainConnectedClientSocket:
+    def __init__(self, client_socket, logger_system):
+        self._client_socket = client_socket[0]
+        self._client_addr = client_socket[1]
+        self._logger_system = logger_system
+        self._logger = logger_system.get_logger()
+
+    def uds_client_socket_fd_get(self):
+        if self._uds_socket is None:
+            return RcCode.DATA_NOT_FOUND, None
+        return RcCode.SUCCESS, self._client_socket.fileno()
+
+    def uds_client_socket_send(self, data):
         try:
-            self._logger.info(
-                self._logger_system.set_logger_rc_code(
-                    "Send the data {} to host {}".format(data, client_socket[0].getpeername())))
-            if isinstance(data, str):
-                client_socket[0].sendall(bytes(data, 'utf-8'))
-            else:
-                client_socket[0].sendall(data)
+            self._client_socket.sendall(data)
         except OSError:
             return RcCode.FAILURE
         return RcCode.SUCCESS
 
-    def uds_client_socket_recv(self, client_socket, max_size):
+    def uds_client_socket_recv(self, max_size):
         wait = True
-        data = ""
+        data = b""
         while wait:
             try:
-                data = client_socket[0].recv(max_size)
+                data = self._client_socket.recv(max_size)
                 wait = False
             except OSError as e:
                 if e.errno == errno.EAGAIN:
-                    return RcCode.DATA_NOT_READY
+                    return RcCode.DATA_NOT_READY, None
                 return RcCode.FAILURE, None
-        data_str = ""
-        for data_byte in data:
-            try:
-                data_str = data_str + chr(data_byte)
-            except UnicodeDecodeError:
-                data_str = data_str + "."
-        self._logger.info(
-            self._logger_system.set_logger_rc_code(
-                "Receive the data {} from host {}".format(data, client_socket[0].getpeername())))
-        return RcCode.SUCCESS, data_str
+        return RcCode.SUCCESS, data
 
-    def uds_client_socket_close(self, client_socket):
+    def uds_client_socket_close(self):
         try:
             self._logger.info(self._logger_system.set_logger_rc_code("Client socket close."))
-            client_socket[0].close()
+            self._client_socket.close()
         except OSError:
             self._logger.info(self._logger_system.set_logger_rc_code("Can not close the client socket"))
         return RcCode.SUCCESS

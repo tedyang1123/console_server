@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+import click
+
+from src.console_server.processing.console_server import ConsoleServer
+from src.ssh_server.ssh_server import SshServer
+
+@click.command()
+def server():
+    console_server = ConsoleServer(1, 5, 48)
+    ssh_server = SshServer(1)
+
+    console_server.start()
+    ssh_server.start()
+
+    console_server.join()
+    ssh_server.join()
+
+
+if __name__ == '__main__':
+    server()

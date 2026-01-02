@@ -28,6 +28,8 @@ class RcCode(IntEnum):
     USER_EXIST = auto()
     USER_NOT_FOUND = auto()
     PERMISSION_DENIED = auto()
+    QUEUE_FULL = auto()
+    QUEUE_ENPTY = auto()
 
     @classmethod
     def covert_rc_to_string(cls, rc):
@@ -83,6 +85,10 @@ class RcCode(IntEnum):
             return "USER_NOT_FOUND"
         elif rc == cls.PERMISSION_DENIED:
             return "PERMISSION_DENIED"
+        elif rc == cls.QUEUE_ENPTY:
+            return "QUEUE_ENPTY"
+        elif rc == cls.QUEUE_FULL:
+            return "QUEUE_FULL"
         else:
             return None
 
