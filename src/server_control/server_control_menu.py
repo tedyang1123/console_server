@@ -36,7 +36,7 @@ server_control_port_access_menu: str =\
 Q. Exit\r\n\
 "
 
-SERVER_CONTROL_ITEM_SELECT_PROMPT = "Enter Action ID or Q/q> "
+SERVER_CONTROL_ITEM_SELECT_PROMPT = "Enter Action ID A/a, B/b or Q/q> "
 SERVER_CONTROL_PORT_CONFIG_PROMPT = "Enter Port ID or Q/q> "
 SERVER_CONTROL_USER_CONFIG_PROMPT = "Enter baud rate or Q/q> "
 SERVER_CONTROL_ALIAS_NAME_PROMPT = "Enter alias name or Q/q> "

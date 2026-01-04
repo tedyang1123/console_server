@@ -21,8 +21,8 @@ class Msg:
     
     def get_msg(self):
         return RcCode.SUCCESS, {
-            "request": self.request, "serial_port_id": 
-            self.serial_port_id, "socket_fd": self.socket_fd, "data": self.data
+            "request": self.request, "serial_port_id": self.serial_port_id,
+            "socket_fd": self.socket_fd, "data": self.data
         }
 
 
@@ -30,9 +30,24 @@ class RequestMsg(Msg):
     def __init__(self, request=None, serial_port_id=None, socket_fd=None,  data=None):
         Msg.__init__(self, request, serial_port_id, socket_fd, data)
 
+    def serialize(self):
+        msg_str = json.dumps({
+            "request": self.request, "serial_port_id":
+            self.serial_port_id, "socket_fd": self.socket_fd, "data": self.data
+        })
+        return RcCode.SUCCESS, msg_str
+
+    def deserialize(self, msg_str):
+        msg_dict = json.loads(msg_str)
+        self.request = msg_dict["request"]
+        self.serial_port_id = msg_dict["serial_port_id"]
+        self.socket_fd = msg_dict["socket_fd"]
+        self.data = msg_dict["data"]
+        return RcCode.SUCCESS
+
 class ReplyMsg(Msg):
     def __init__(self, request=None, serial_port_id=None, socket_fd=None, data=None, result=None):
-        Msg.__init__(self, request, serial_port_id, socket_fd,  data)
+        Msg.__init__(self, request, serial_port_id, socket_fd, data)
         self.result = result
 
     def set_msg(self, msg_dict):
@@ -46,11 +61,27 @@ class ReplyMsg(Msg):
         return RcCode.SUCCESS
     
     def get_msg(self):
-        rc, data_dict = super().get_msg
+        rc, data_dict = super().get_msg()
         if rc != RcCode.SUCCESS:
             return rc, None
-        data_dict["result"] = self.resuit
+        data_dict["result"] = self.result
         return RcCode.SUCCESS, data_dict
+
+    def serialize(self):
+        sg_str = json.dumps({
+            "request": self.request, "serial_port_id": self.serial_port_id,
+            "socket_fd": self.socket_fd, "data": self.data, "result": self.result
+        })
+        return RcCode.SUCCESS, sg_str
+
+    def deserialize(self, msg_str):
+        msg_dict = json.loads(msg_str)
+        self.request = msg_dict["request"]
+        self.serial_port_id = msg_dict["serial_port_id"]
+        self.socket_fd = msg_dict["socket_fd"]
+        self.data = msg_dict["data"]
+        self.result = msg_dict["result"]
+        return RcCode.SUCCESS
 
 
 def msg_serialize(msg_dict):
@@ -58,5 +89,5 @@ def msg_serialize(msg_dict):
     return RcCode.SUCCESS, msg_str
 
 def msg_deserialize(msg_str):
-    msg_dict = json.load(msg_str)
+    msg_dict = json.loads(msg_str)
     return RcCode.SUCCESS, msg_dict

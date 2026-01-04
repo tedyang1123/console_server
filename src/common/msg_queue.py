@@ -1,3 +1,4 @@
+import queue
 from multiprocessing import Queue
 
 from src.common.logger_system import LoggerSystem
@@ -5,10 +6,13 @@ from src.common.rc_code import RcCode
 
 
 class BiMsgQueue:
-    def __init__(self, logger_system=None):
+    def __init__(self, logger_system=None, tx_blocking=True, tx_timeout=None, rx_blocking=True, rx_timeout=None):
+        self._tx_blocking = tx_blocking
+        self._rx_blocking = rx_blocking
+        self._tx_timeout = tx_timeout
+        self._rx_timeout = rx_timeout
         self._logger_system = logger_system
-        if self._logger_system is not None:
-            self._logger = self._logger_system.get_logger()
+        self._logger = None
         self._tx_queue = Queue()
         self._rx_queue = Queue()
     
@@ -25,36 +29,32 @@ class BiMsgQueue:
         self._tx_queue = Queue()
         self._rx_queue = Queue()
 
-        return rc
+        return RcCode.SUCCESS
 
     def local_peer_send_msg(self, msg):
         try:
-            self._tx_queue.put(msg)
-        except Queue.Full:
-            self._logger.error("The message queue is full.")
+            self._tx_queue.put(msg, self._tx_blocking, self._tx_timeout)
+        except queue.Full:
             return RcCode.QUEUE_FULL
         return RcCode.SUCCESS
     
     def local_peer_receive_msg(self):
         try:
-            msg = self._rx_queue.get()
-        except Queue.Full:
-            self._logger.error("The message queue is empty.")
+            msg = self._rx_queue.get(self._rx_blocking, self._rx_timeout)
+        except queue.Empty:
             return RcCode.QUEUE_ENPTY, None
         return RcCode.SUCCESS, msg
 
     def remote_peer_send_msg(self, msg):
         try:
-            self._rx_queue.put(msg)
-        except Queue.Full:
-            self._logger.error("The message queue is full.")
+            self._rx_queue.put(msg, self._tx_blocking, self._tx_timeout)
+        except queue.Full:
             return RcCode.QUEUE_FULL
         return RcCode.SUCCESS
     
     def remote_peer_receive_msg(self):
         try:
-            msg = self._tx_queue.get()
-        except Queue.Full:
-            self._logger.error("The message queue is empty.")
+            msg = self._tx_queue.get(self._rx_blocking, self._rx_timeout)
+        except queue.Empty:
             return RcCode.QUEUE_ENPTY, None
         return RcCode.SUCCESS, msg

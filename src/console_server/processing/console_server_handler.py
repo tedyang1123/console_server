@@ -4,14 +4,18 @@ import select
 from src.common.logger_system import LoggerSystem
 from src.common.msg import ReplyMsg, RequestMsg, msg_serialize
 from src.common.rc_code import RcCode
-from src.common.uds_lib import UnixDomainConnectedClientSocket
+from src.common.uds_lib import UnixDomainConnectedClientSocket, UnixDomainServerSocket
+from src.common.utiliity import TEST_MODE
 from src.console_server.processing.console_server_port import ConsoleServerSerialPort
 
 
-class _ConsolerServerHandkerDb:
+class _ConsolerServerHandlerDb:
     def __init__(self):
+        self._uds_server_socket_obj = None
         self._serial_port_info_dict = {}
-        self._socket_dict = {}
+        self._pending_conn_dict = {}
+        self._server_socket_epoll = select.epoll()
+        self._client_socket_dict = {}
         self._client_socket_epoll = select.epoll()
     
     def add_serial_port(self, serial_port_id, serial_port_obj):
@@ -37,23 +41,23 @@ class _ConsolerServerHandkerDb:
         socket_fd = uds_client_socket_obj.uds_client_socket_fd_get()
         if socket_fd in self._serial_port_info_dict[serial_port_id]:
             return RcCode.DATA_EXIST
-        if socket_fd in self._socket_dict:
+        if socket_fd in self._client_socket_dict:
             return RcCode.DATA_EXIST
         socket_fd_dict = self._serial_port_info_dict[serial_port_id]["fd_dict"]
         socket_fd_dict[socket_fd] = uds_client_socket_obj
-        self._socket_dict[socket_fd] = {"socket_obj": uds_client_socket_obj, "serial_port_id": serial_port_id}
+        self._client_socket_dict[socket_fd] = {"socket_obj": uds_client_socket_obj, "serial_port_id": serial_port_id}
         self._client_socket_epoll.register(socket_fd, select.EPOLLIN)
         return RcCode.SUCCESS
     
     def del_serial_port_access_socket(self, serial_port_id, socket_fd):
         if serial_port_id not in self._serial_port_info_dict:
             return RcCode.DATA_NOT_FOUND
-        if socket_fd not in self._serial_port_info_dict[serial_port_id]:
+        if socket_fd not in self._serial_port_info_dict[serial_port_id]["fd_dict"]:
             return RcCode.DATA_NOT_FOUND
         socket_fd_dict = self._serial_port_info_dict[serial_port_id]["fd_dict"]
         self._client_socket_epoll.unregister(socket_fd)
         del socket_fd_dict[socket_fd]
-        del self._socket_dict[socket_fd]
+        del self._client_socket_dict[socket_fd]
         return RcCode.SUCCESS
     
     def get_serial_port_access_socket(self, serial_port_id, socket_fd):
@@ -65,7 +69,7 @@ class _ConsolerServerHandkerDb:
         return RcCode.SUCCESS, socket_fd_dict[serial_port_id]
     
     def get_client_socket(self):
-        return RcCode.SUCCESS, self._socket_dict
+        return RcCode.SUCCESS, self._client_socket_dict
     
     def get_client_epoll(self):
         return RcCode.SUCCESS, self._client_socket_epoll
@@ -73,12 +77,57 @@ class _ConsolerServerHandkerDb:
     def get_serial_port_info(self):
         return RcCode.SUCCESS, self._serial_port_info_dict
 
+    def add_server_socket(self, uds_server_socket_obj):
+        if self._uds_server_socket_obj is not None:
+            return RcCode.DATA_EXIST
+        self._uds_server_socket_obj = uds_server_socket_obj
+        self._server_socket_epoll.register(uds_server_socket_obj.uds_server_socket_fd_get(), select.EPOLLIN)
+        return RcCode.SUCCESS
+
+    def del_server_socket(self, uds_server_socket_obj):
+        if self._uds_server_socket_obj is None:
+            return RcCode.DATA_NOT_FOUND
+        self._server_socket_epoll.unregister(uds_server_socket_obj.uds_client_socket_fd_get())
+        self._uds_server_socket_obj = None
+        return RcCode.SUCCESS
+
+    def get_server_socket(self):
+        if self._uds_server_socket_obj is None:
+            return RcCode.DATA_NOT_FOUND, None
+        return RcCode.SUCCESS, self._uds_server_socket_obj
+
+    def get_server_epoll(self):
+        return RcCode.SUCCESS, self._server_socket_epoll
+
+    def add_pending_connection(self, uds_connected_socket):
+        socket_fd = uds_connected_socket.uds_client_socket_fd_get()
+        if socket_fd in self._pending_conn_dict:
+            return RcCode.DATA_EXIST
+        self._pending_conn_dict[socket_fd] = uds_connected_socket
+        self._server_socket_epoll.register(socket_fd, select.EPOLLIN)
+        return RcCode.SUCCESS
+
+    def del_pending_connection(self, client_socket_fd):
+        if client_socket_fd not in self._pending_conn_dict:
+            return RcCode.DATA_NOT_FOUND
+        del self._pending_conn_dict[client_socket_fd]
+        self._server_socket_epoll.unregister(client_socket_fd)
+        return RcCode.SUCCESS
+
+    def get_pending_connections(self, client_socket_fd=None):
+        if client_socket_fd is None:
+            return RcCode.SUCCESS, self._pending_conn_dict
+        if client_socket_fd not in self._pending_conn_dict:
+            return RcCode.DATA_NOT_FOUND
+        return RcCode.SUCCESS, self._pending_conn_dict[client_socket_fd]
+
 
 MAX_MSG_SIZE = 1024
 
 
 class ConsolerServerHandler(multiprocessing.Process):
     def __init__(self, process_id, tx_queue_func, rx_queue_func):
+        self._process_id = process_id
         self._tx_queue_func = tx_queue_func
         self._rx_queue_func = rx_queue_func
         multiprocessing.Process.__init__(self)
@@ -86,7 +135,9 @@ class ConsolerServerHandler(multiprocessing.Process):
         self._logger_system = LoggerSystem("ConsolerServerHandler_{}".format(process_id))
         self._logger = self._logger_system.get_logger()
 
-        self._db = _ConsolerServerHandkerDb()
+        self._db = _ConsolerServerHandlerDb()
+
+        self._pending_client_socket_dict = {}
 
         self._is_server_running = True
 
@@ -130,7 +181,7 @@ class ConsolerServerHandler(multiprocessing.Process):
             return rc
         self._logger = self._logger_system.get_logger()
 
-        # Notify the console server that process has processed conpletely
+        # Notify the console server that process has processed completely
         request_msg = RequestMsg("init_handler")
         rc = self._tx_queue_func(request_msg)
         if rc != RcCode.SUCCESS:
@@ -145,15 +196,12 @@ class ConsolerServerHandler(multiprocessing.Process):
     def process_message_queue_data(self):
         rc, msg_dict = self._rx_queue_func()
         if rc == RcCode.QUEUE_ENPTY:
-            self._logger.info(
-                self._logger_system.set_logger_rc_code(
-                    "Receive request no request".format(msg_dict.request)))
             # No such data to read from the queue
             return RcCode.SUCCESS
         elif rc != RcCode.SUCCESS:
             return rc
 
-        # Preocess the request
+        # Process the request
         match msg_dict.request:
             case "init_serial_port":
                 serial_port_config = msg_dict.data["serial_port_config"]
@@ -167,7 +215,7 @@ class ConsolerServerHandler(multiprocessing.Process):
                     if rc != RcCode.SUCCESS:
                         self._logger.error(
                             self._logger_system.set_logger_rc_code(
-                                "Initital the serial port {} failed.".format(serial_port_id), rc=rc))
+                                "Initial the serial port {} failed.".format(serial_port_id), rc=rc))
                         rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, 
                                                 "Can not initialize the serial port {}.".format(serial_port_id), "Failed")
                         if rc != RcCode.SUCCESS:
@@ -183,38 +231,14 @@ class ConsolerServerHandler(multiprocessing.Process):
                         self._logger_system.set_logger_rc_code(
                             "Can not notify the console server about the request {}.".format(msg_dict.request), rc=rc))
                     return rc
-            case "connect_serial_port":
-                serial_port_id = msg_dict.serial_port_id
-                socket_obj = msg_dict.data["socket_obj"]
-
-                # Add the serial por to DB
-                rc = self._db.add_serial_port_access_socket(
-                    serial_port_id, UnixDomainConnectedClientSocket(socket_obj, self._logger_system))
-                if rc != RcCode.SUCCESS:
-                    self._logger.error(
-                        self._logger_system.set_logger_rc_code(
-                            "Add the serial port {} to DB fail".format(serial_port_id), rc=rc))
-                    rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, 
-                                             "Can not add the socket to the DB.", "Failed")
-                    if rc != RcCode.SUCCESS:
-                        return rc
-
-                # Notify the console server that serial port has connected
-                rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "", "OK")
-                if rc != RcCode.SUCCESS:
-                    self._logger.error(
-                        self._logger_system.set_logger_rc_code(
-                            "Can not notify the console server about the request {}.".format(msg_dict.request), rc=rc))
-
                 self._logger.info(
-                    self._logger_system.set_logger_rc_code(
-                        "Connect with serial port {} successful.".format(serial_port_id)))
+                    self._logger_system.set_logger_rc_code("Notify the server that serial prot has init complete."))
             case "config_baud_rate":
                 serial_port_id = msg_dict.serial_port_id
                 baud_rate = msg_dict.data["baud_rate"]
 
                 # Add the serial por to DB
-                rc, serial_port_obj = self._db.get_serial_port(serial_port_id)
+                rc, serial_port_dict = self._db.get_serial_port(serial_port_id)
                 if rc != RcCode.SUCCESS:
                     self._logger.error(
                         self._logger_system.set_logger_rc_code(
@@ -224,19 +248,21 @@ class ConsolerServerHandler(multiprocessing.Process):
                     if rc != RcCode.SUCCESS:
                         return rc
 
+                serial_port_obj = serial_port_dict["serial_port_obj"]
+
                 # Configure the baud rate and restart the serial port
                 rc = serial_port_obj.set_com_port_baud_rate(baud_rate)
                 if rc != RcCode.SUCCESS:
                     self._logger.error(
                         self._logger_system.set_logger_rc_code(
                             "Set the baud rate top the serial port {} fail".format(serial_port_id), rc=rc))
-                    rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, 
+                    rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd,
                                              "Can not get the serial port object the DB.", "Failed")
                     if rc != RcCode.SUCCESS:
                         return rc
 
                 # Notify the console server that serial has configured the new baud rate
-                rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "", "OK")
+                rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
                 if rc != RcCode.SUCCESS:
                     self._logger.error(
                         self._logger_system.set_logger_rc_code(
@@ -253,34 +279,239 @@ class ConsolerServerHandler(multiprocessing.Process):
                         self._logger_system.set_logger_rc_code(
                             "Can not notify the console server about the request {}.".format(msg_dict.request), rc=rc))
         return RcCode.SUCCESS
+
+    def _close_pending_connection(self, pending_connection):
+        socket_fd = pending_connection.uds_client_socket_fd_get()
+        rc = self._db.del_pending_connection(socket_fd)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Can not remove the socket form the DB.", rc=rc))
+            return rc
+        rc = pending_connection.uds_client_socket_close()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Can not close the client socket.", rc=rc))
+            return rc
+        return RcCode.SUCCESS
+
+    def _reply_client_message(self, client_socket_obj, request, result, data):
+        # Create reply message
+        reply_msg = ReplyMsg(request, None, None, data, result)
+        rc, msg_dict = reply_msg.get_msg()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Can not convert the data to the dictionary.", rc=rc))
+            return rc
+
+        # Message serialize
+        rc, msg_str = msg_serialize(msg_dict)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Can not serialize the data.", rc=rc))
+            return rc
+
+        # Send the total size of the message by socket
+        data_len = len(msg_str)
+        data_byte = data_len.to_bytes(4, byteorder='little')
+        rc = client_socket_obj.uds_client_socket_send(data_byte)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Can not serialize the data.", rc=rc))
+            return rc
+
+        # Send the message by socket
+        rc = client_socket_obj.uds_client_socket_send(bytes(msg_str, 'utf-8'))
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Can not serialize the data.", rc=rc))
+            return rc
+        return RcCode.SUCCESS
+
+    def _user_connect_serial_port(self, pending_connection, request):
+        serial_port_id = request.serial_port_id
+
+        # Delete the pending connection
+        rc = self._db.del_pending_connection(pending_connection.uds_client_socket_fd_get())
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Delete the pending connection from the DB fail".format(serial_port_id), rc=rc))
+            if rc != RcCode.SUCCESS:
+                return rc
+
+        # Add the serial por to DB
+        rc = self._db.add_serial_port_access_socket(serial_port_id, pending_connection)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Add the serial port {} to DB fail".format(serial_port_id), rc=rc))
+            if rc != RcCode.SUCCESS:
+                return rc
+
+        rc, serial_port_dict = self._db.get_serial_port(serial_port_id)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Get the serial port {} from the DB fail".format(serial_port_id), rc=rc))
+            if rc != RcCode.SUCCESS:
+                return rc
+        serial_port_obj = serial_port_dict["serial_port_obj"]
+        rc, status = serial_port_obj.is_open_com_port()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not get the port status.", rc=rc))
+        if not status:
+            if not TEST_MODE:
+                rc = serial_port_obj.open_com_port()
+            else:
+                rc = RcCode.SUCCESS
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code(
+                        "Can not open serial port {}".format(serial_port_id), rc=rc))
+                return rc
+
+        rc = self._reply_client_message(pending_connection, request.request, "OK", None)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Reply the message failed", rc=rc))
+            if rc != RcCode.SUCCESS:
+                return rc
+        return RcCode.SUCCESS
+
+    def _process_server_socket_event(self, msg, pending_connection):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process the request"))
+        request = RequestMsg()
+        rc = request.deserialize(msg)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Invalid request format.", rc=rc))
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Dispatch the request"))
+        match request.request:
+            case "connect_serial_port":
+                rc = self._user_connect_serial_port(pending_connection, request)
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code("Process request \"connect_serial_port\" failed.", rc=rc))
+                    return rc
+                self._logger.info(self._logger_system.set_logger_rc_code(
+                    "Connect with serial port {} successful.".format(request.serial_port_id)))
+            case _:
+                self._logger.warning(self._logger_system.set_logger_rc_code(
+                    "Invalid request {}.".format(request.request)))
+        return RcCode.SUCCESS
+
+    def process_server_socket_event(self):
+        # Get the server socket
+        rc, server_socket_obj = self._db.get_server_socket()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not get the server socket.", rc=rc))
+            return rc
+
+        # Get the server EPOLL
+        rc, server_socket_epoll = self._db.get_server_epoll()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not get the server socket epoll.", rc=rc))
+            return rc
+
+        # Get the pending connection
+        rc, pending_connection_dict = self._db.get_pending_connections()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not get the pending connection.", rc=rc))
+            return rc
+
+        # Receive the socket event
+        events = server_socket_epoll.poll(0.01)
+        for socket_fd, event in events:
+            if socket_fd == server_socket_obj.uds_server_socket_fd_get():
+                # A new client connected with the server
+                rc, client_socket_obj = server_socket_obj.uds_server_socket_accept()
+                if rc != RcCode.SUCCESS:
+                    # Ignore this event, process next event.
+                    continue
+
+                self._logger.info(self._logger_system.set_logger_rc_code(
+                    "A new client arrived. {}".format(client_socket_obj.getpeername())))
+
+                # Register the connection to DB
+                rc = self._db.add_pending_connection(
+                    UnixDomainConnectedClientSocket(client_socket_obj, self._logger_system))
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code("Can not add the client socket to the DB.", rc=rc))
+                    return rc
+            elif socket_fd in pending_connection_dict and event & select.EPOLLIN:
+                pending_connection = pending_connection_dict[socket_fd]
+
+                # Receive the data from the socket
+                rc, data = pending_connection.uds_client_socket_recv(MAX_MSG_SIZE)
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code("Can not receive the data from the socket", rc=rc))
+                    rc = self._close_pending_connection(pending_connection)
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    continue
+
+                # If the socket receive the data successful but no data can be processed, it means that socket has been closed
+                if data == "":
+                    self._logger.info(self._logger_system.set_logger_rc_code("Client socket has been closed", rc=rc))
+                    rc = self._close_pending_connection(pending_connection)
+                    if rc != RcCode.SUCCESS:
+                        return rc
+                    continue
+
+                # Send the data to serial port
+                rc = self._process_server_socket_event(data.decode('utf-8'), pending_connection)
+                if rc != RcCode.SUCCESS:
+                    rc = self._close_pending_connection(pending_connection)
+                    if rc != RcCode.SUCCESS:
+                        return rc
+        return RcCode.SUCCESS
     
     def _close_client_socket(self, serial_port_id, uds_socket_obj):
         socket_fd = uds_socket_obj.uds_client_socket_fd_get()
+        rc = self._db.del_serial_port_access_socket(serial_port_id, socket_fd)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Can not remove the socket associated with serial port {} form the DB.".format(serial_port_id), rc=rc))
+            return rc
         rc = uds_socket_obj.uds_client_socket_close()
         if rc != RcCode.SUCCESS:
             self._logger.error(
                 self._logger_system.set_logger_rc_code(
                     "Can not close the client socket.", rc=rc))
             return rc
-        rc = self._db.del_serial_port_access_socket(serial_port_id, socket_fd)
-        if rc != RcCode.SUCCESS:
-            self._logger.error(
-                self._logger_system.set_logger_rc_code(
-                    "Can not remove the socket form the DB.", rc=rc))
-            return rc
         return RcCode.SUCCESS
     
     def _socket_data_handle(self, serial_port_id, msg):
         # Send the data to serial port
-        rc, serial_port_obj = self._db.get_serial_port(serial_port_id)
+        rc, serial_port_dict = self._db.get_serial_port(serial_port_id)
         if rc != RcCode.SUCCESS:
             self._logger.error(
                 self._logger_system.set_logger_rc_code(
                     "Can not get the serial port object".format(serial_port_id), rc=rc))
             return rc
+        serial_port_obj = serial_port_dict["serial_port_obj"]
         
         # If serial port is busy, drop this data
-        rc, status = serial_port_obj.output_buffer_is_waiting()
+        if not TEST_MODE:
+            rc, status = serial_port_obj.output_buffer_is_waiting()
+        else:
+            status = False
+            rc = RcCode.SUCCESS
         if rc != RcCode.SUCCESS:
             self._logger.error(
                 self._logger_system.set_logger_rc_code(
@@ -290,7 +521,10 @@ class ConsolerServerHandler(multiprocessing.Process):
             return RcCode.SUCCESS
         
         # Send the data to serial port
-        rc = serial_port_obj.write_com_port_data(msg)
+        if not TEST_MODE:
+            rc = serial_port_obj.write_com_port_data(msg)
+        else:
+            rc = RcCode.SUCCESS
         if rc != RcCode.SUCCESS:
             self._logger.error(
                 self._logger_system.set_logger_rc_code(
@@ -298,7 +532,7 @@ class ConsolerServerHandler(multiprocessing.Process):
             return rc
         return RcCode.SUCCESS
 
-    def process_socket_data(self):
+    def process_client_socket_data(self):
         rc, client_socket_dict = self._db.get_client_socket()
         if rc != RcCode.SUCCESS:
             self._logger.error(
@@ -329,17 +563,17 @@ class ConsolerServerHandler(multiprocessing.Process):
                     continue
                 
                 # If the socket receive the data successful but no data can be processed, it means that socket has closed
-                if data == "":
+                if data == b"":
                     self._logger.info(
                         self._logger_system.set_logger_rc_code(
-                            "Client socket has been clodedt", rc=rc))
+                            "Client socket has been closed", rc=rc))
                     rc = self._close_client_socket(serial_port_id, uds_client_socket_obj)
                     if rc != RcCode.SUCCESS:
                         return rc
                     continue
 
                 # Send the data to serial port
-                rc = self._socket_data_handle(serial_port_id)
+                rc = self._socket_data_handle(serial_port_id, data)
                 if rc != RcCode.SUCCESS:
                     rc = self._close_client_socket(serial_port_id, uds_client_socket_obj)
                     if rc != RcCode.SUCCESS:
@@ -353,7 +587,7 @@ class ConsolerServerHandler(multiprocessing.Process):
                 rc, socket_fd = socket_dict[socket_fd].uds_client_socket_fd_get()
                 if rc != RcCode.SUCCESS:
                     return rc
-                rc = self._close_client_socket(serial_port_id)
+                rc = self._close_client_socket(serial_port_id, socket_dict[socket_fd])
                 if rc != RcCode.SUCCESS:
                     return rc
         return RcCode.SUCCESS
@@ -401,11 +635,28 @@ class ConsolerServerHandler(multiprocessing.Process):
                     self._logger_system.set_logger_rc_code(
                         "Can not broadcast the data reading from the serial port {} to client socket".format(serial_port_id), rc=rc))
                 return rc
+        return RcCode.SUCCESS
     
     def run(self):
         rc = self.init_console_server_handler()
         if rc != RcCode.SUCCESS:
             return
+
+        uds_server_socket_obj = UnixDomainServerSocket(
+            20, "/tmp/server_handler_{}.sock".format(self._process_id), self._logger_system)
+        rc = uds_server_socket_obj.uds_server_socket_init()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Can not init the server socket.", rc=rc))
+            return
+        rc = self._db.add_server_socket(uds_server_socket_obj)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code(
+                    "Can not add the server socket in the DB.", rc=rc))
+            return
+
         while self._is_server_running:
             rc = self.process_message_queue_data()
             if rc != RcCode.SUCCESS:
@@ -414,11 +665,18 @@ class ConsolerServerHandler(multiprocessing.Process):
                         "Process data reading from message queue failed.", rc=rc))
                 break
 
-            rc = self.process_socket_data()
+            rc = self.process_server_socket_event()
             if rc != RcCode.SUCCESS:
                 self._logger.error(
                     self._logger_system.set_logger_rc_code(
-                        "Process data reading from socket failed.", rc=rc))
+                        "Process data reading from server socket failed.", rc=rc))
+                break
+
+            rc = self.process_client_socket_data()
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code(
+                        "Process data reading from client socket failed.", rc=rc))
                 break
 
             rc = self.process_serial_port_data()

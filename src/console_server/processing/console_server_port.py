@@ -129,11 +129,6 @@ class ConsoleServerSerialPort:
         self._current_user = self._current_user + 1
         return rc
 
-
-    def set_com_port_description(self, description):
-        self._serial_port_description = description
-        return RcCode.SUCCESS
-
     def read_com_port_data(self, buf_size=1024):
         data = None
         try:
