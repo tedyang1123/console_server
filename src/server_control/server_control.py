@@ -417,7 +417,6 @@ class ServerControlSerialAccessMode(ServerControlMode):
 
     def _handle_ssh_server_data(self):
         if self._rx_ready_func is None or self._rx_ready_func():
-            self._logger.info("Start to read ssh channel")
             read_str = self._rx_func(1024)
             self._logger.info(self._logger_system.set_logger_rc_code("Read the data: {}".format(read_str)))
             for ascii_val in read_str:
@@ -428,7 +427,6 @@ class ServerControlSerialAccessMode(ServerControlMode):
                         self._logger.error(
                             self._logger_system.set_logger_rc_code("Can not close the client socket"), rc=rc)
                     return RcCode.EXIT_MENU
-            self._logger.info("Get the data from the ssh server {}".format(bytes.hex(read_str)))
             rc = self._uds_client_socket.uds_client_socket_send(read_str)
             if rc != RcCode.SUCCESS:
                 self._logger.error(
@@ -470,7 +468,8 @@ class ServerControlSerialAccessMode(ServerControlMode):
                 return rc
             rc = self._connect_serial_port()
             if rc != RcCode.SUCCESS:
-                return rc
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can access the serial port", rc=rc))
             self._port_access_flow_complete = True
             rc = self._uds_client_socket.uds_client_socket_set_blocking(False)
             if rc != RcCode.SUCCESS:

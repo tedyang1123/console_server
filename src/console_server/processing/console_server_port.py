@@ -41,8 +41,6 @@ class ConsoleServerSerialPort:
         # Test if the serial exists.
         rc = self.test_com_port_read(self._serial_port_id)
         if rc != RcCode.SUCCESS:
-            self._logger.error(
-                self._logger_system.set_logger_rc_code("The serial port {} is not found.".format(self._serial_port_id)))
             return RcCode.DEVICE_NOT_FOUND
 
         # Apply the serial config to serial port object
