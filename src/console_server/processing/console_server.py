@@ -508,7 +508,23 @@ class ConsoleServer(multiprocessing.Process):
                         self._logger_system.set_logger_rc_code("Process \"config_baud_rate\" failed.", rc=rc))
                     return rc
             case "config_alias_name":
-                pass
+                rc = self._db.modify_serial_port(
+                    client_request.serial_port_id, "alias_name", client_request.data["alias_name"])
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(self._logger_system.set_logger_rc_code("Update the DB fail.", rc=rc))
+                    rc = self._reply_client_message(
+                        client_socket_obj, client_request.request, "failed", "Update the DB fail.")
+                    if rc != RcCode.SUCCESS:
+                        self._logger.error(
+                            self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                        return rc
+                    return RcCode.SUCCESS
+
+                # Reply the message to the user
+                rc = self._reply_client_message(client_socket_obj, client_request.request, "OK", client_request.data)
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return rc
             case "get_port_config":
                 rc, serial_port_dict = self._db.get_serial_port()
                 if rc != RcCode.SUCCESS:

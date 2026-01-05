@@ -441,7 +441,6 @@ class ServerControlSerialAccessMode(ServerControlMode):
         rc, data = self._uds_client_socket.uds_client_socket_recv(self.MAX_BUFFER_SIZE)
         if rc == RcCode.SUCCESS:
             if data != "":
-                self._logger.info(self._logger_system.set_logger_rc_code("Read the data: {}".format(data)))
                 try:
                     self._tx_func(data)
                 except UnicodeDecodeError:
@@ -590,11 +589,19 @@ class ServerControlPortConfigMode(ServerControlMode):
                     "config_alias_name", self._serial_port_id, {"alias_name": process_data})
                 if rc != RcCode.SUCCESS:
                     self._refresh_screen_menu()
+                    self._config_step = self.CONFIG_SELECT_ITEM
+                    self._server_prompt = SERVER_CONTROL_ITEM_SELECT_PROMPT
+                    self._serial_port_id = -1
+                    self._baud_rate = -1
                     return rc
 
-                rc, _ = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, "config_baud_rate")
+                rc, _ = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, "config_alias_name")
                 if rc != RcCode.SUCCESS:
                     self._refresh_screen_menu()
+                    self._config_step = self.CONFIG_SELECT_ITEM
+                    self._server_prompt = SERVER_CONTROL_ITEM_SELECT_PROMPT
+                    self._serial_port_id = -1
+                    self._baud_rate = -1
                     return rc
             else:
                 try:

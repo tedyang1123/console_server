@@ -22,5 +22,5 @@ def load_data_from_json(driver_config_file):
         return RcCode.FILE_ACCESS_FAIL, None
     return RcCode.SUCCESS, data
 
-TEST_MODE = True
+TEST_MODE = False
 

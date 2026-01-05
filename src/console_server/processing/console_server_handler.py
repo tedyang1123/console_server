@@ -497,6 +497,7 @@ class ConsolerServerHandler(multiprocessing.Process):
         return RcCode.SUCCESS
     
     def _socket_data_handle(self, serial_port_id, msg):
+        self._logger.info("_socket_data_handle.")
         # Send the data to serial port
         rc, serial_port_dict = self._db.get_serial_port(serial_port_id)
         if rc != RcCode.SUCCESS:
@@ -551,6 +552,8 @@ class ConsolerServerHandler(multiprocessing.Process):
                 serial_port_id = client_socket_dict[socket_fd]["serial_port_id"]
                 uds_client_socket_obj = client_socket_dict[socket_fd]["socket_obj"]
 
+                self._logger.info("The new data has arrived.")
+
                 # Receive the data from the socket
                 rc, data = uds_client_socket_obj.uds_client_socket_recv(MAX_MSG_SIZE)
                 if rc != RcCode.SUCCESS:
@@ -561,6 +564,8 @@ class ConsolerServerHandler(multiprocessing.Process):
                     if rc != RcCode.SUCCESS:
                         return rc
                     continue
+
+                self._logger.info("Found the object.")
                 
                 # If the socket receive the data successful but no data can be processed, it means that socket has closed
                 if data == b"":
@@ -572,6 +577,8 @@ class ConsolerServerHandler(multiprocessing.Process):
                         return rc
                     continue
 
+                self._logger.info("Start process the data.")
+
                 # Send the data to serial port
                 rc = self._socket_data_handle(serial_port_id, data)
                 if rc != RcCode.SUCCESS:
@@ -582,6 +589,8 @@ class ConsolerServerHandler(multiprocessing.Process):
     
     def _serial_data_handle(self, serial_port_id, socket_dict,  msg):
         for socket_fd in socket_dict:
+            self._logger.error(socket_fd)
+            self._logger.error(socket_dict)
             rc = socket_dict[socket_fd].uds_client_socket_send(msg)
             if rc != RcCode.SUCCESS:
                 rc, socket_fd = socket_dict[socket_fd].uds_client_socket_fd_get()
@@ -616,9 +625,9 @@ class ConsolerServerHandler(multiprocessing.Process):
             if rc != RcCode.SUCCESS:
                 self._logger.error(
                     self._logger_system.set_logger_rc_code(
-                        "Serial port {} is busy.".format(serial_port_id), rc=rc))
+                        "Serial port {} has not data.".format(serial_port_id), rc=rc))
                 return rc
-            if status:
+            if not status:
                 return RcCode.SUCCESS
             
             # receive the data to serial port
@@ -629,7 +638,7 @@ class ConsolerServerHandler(multiprocessing.Process):
                         "Serial port {} can not write the data.".format(serial_port_id), rc=rc))
                 return rc
             
-            rc = self._serial_data_handle(self, msg, serial_port_dict[serial_port_id]["fd_dict"])
+            rc = self._serial_data_handle(serial_port_id, serial_port_dict[serial_port_id]["fd_dict"], msg)
             if rc != RcCode.SUCCESS:
                 self._logger.error(
                     self._logger_system.set_logger_rc_code(

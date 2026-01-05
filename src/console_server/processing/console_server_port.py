@@ -28,7 +28,7 @@ class ConsoleServerSerialPort:
     def create_serial_port(self):
         self._serial_config = {
             "com_port": Serial(),
-            "dev_port": "/dev/ttyUSB{}".format(self._serial_port_id - 1),
+            "dev_port": "/dev/ttyUSB{}".format(self._serial_port_id),
             "baud_rate": self._baud_rate
         }
         return RcCode.SUCCESS
@@ -73,6 +73,7 @@ class ConsoleServerSerialPort:
                 self._logger_system.set_logger_rc_code("The serial port {} is not ready.".format(self._serial_port_id)))
             return RcCode.FAILURE
         self._current_user = self._current_user + 1
+        self._logger.info("Serial port {} is opened.".format(self._serial_port_id))
         return RcCode.SUCCESS
 
     def close_com_port(self):
@@ -92,6 +93,7 @@ class ConsoleServerSerialPort:
                 self._logger_system.set_logger_rc_code("The serial port {} can not close".format(self._serial_port_id)))
             rc = RcCode.DEVICE_NOT_FOUND
         self._current_user = self._current_user - 1
+        self._logger.info("Serial port {} is cloded.".format(self._serial_port_id))
         return rc
     
     def reopen_com_port(self):
@@ -133,7 +135,6 @@ class ConsoleServerSerialPort:
         data = None
         try:
             data = self._serial_config["com_port"].read(size=buf_size)
-            self._logger.info("Read data from {} data {}".format(self._serial_config["dev_port"], data))
             rc = RcCode.SUCCESS
         except OSError:
             self._logger.warning(
@@ -143,8 +144,8 @@ class ConsoleServerSerialPort:
 
     def write_com_port_data(self, data):
         try:
-            self._logger.info("Write data from {} data {}".format(self._serial_config["dev_port"], data.encode()))
-            self._serial_config["com_port"].write(data.encode())
+            self._logger.info("Write data from {} data {}".format(self._serial_config["dev_port"], data))
+            self._serial_config["com_port"].write(data)
             self._serial_config["com_port"].flush()
             rc = RcCode.SUCCESS
         except OSError:
