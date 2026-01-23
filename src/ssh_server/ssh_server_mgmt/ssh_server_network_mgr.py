@@ -7,7 +7,7 @@ class SshServerNetworkMgr(LoggerSystem):
         LoggerSystem.__init__(self, "ssh_network_mgr")
         self._ssh_port_direct_port_dict = {}
         for serial_port_id in range(1, num_of_serial_port + 1):
-            self._ssh_port_direct_port_dict[serial_port_id] = 2300 + serial_port_id
+            self._ssh_port_direct_port_dict[serial_port_id] = 2400 + serial_port_id
 
     def set_ssh_port_direct_access_serial_port(self, serial_port, ssh_port):
         self._ssh_port_direct_port_dict[serial_port] = ssh_port
@@ -30,4 +30,4 @@ class SshServerNetworkMgr(LoggerSystem):
         return RcCode.SUCCESS
 
     def get_ssh_server_ip_address(self):
-        return RcCode.SUCCESS, "127.0.0.1", "255.0.0.0"
+        return RcCode.SUCCESS, "", ""

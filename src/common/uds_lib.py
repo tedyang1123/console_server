@@ -133,7 +133,8 @@ class UnixDomainClientSocket:
             self._logger.info(
                 self._logger_system.set_logger_rc_code(
                     "Connect with server client {}.".format(self._uds_socket.getpeername())))
-        except OSError:
+        except OSError as e:
+            print(e)
             return RcCode.FAILURE
         return RcCode.SUCCESS
 
@@ -147,7 +148,6 @@ class UnixDomainClientSocket:
             else:
                 self._uds_socket.sendall(data)
         except OSError as e:
-            print(e)
             return RcCode.FAILURE
         return RcCode.SUCCESS
 

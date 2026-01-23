@@ -1,9 +1,10 @@
-import json
+import os
 import time
 
-from src.common.msg import ReplyMsg, RequestMsg, msg_deserialize, msg_serialize
+from src.common.msg import ConfigAliasNameRequest, ConfigBaudRateRequest, ConnectSerialPortRequest, GetPortConfigRequest, ReplyMsg, RequestMsg
 from src.common.rc_code import RcCode
 from src.common.uds_lib import UnixDomainClientSocket
+from src.console_server.processing.console_server_event import ConsoleServerEvent
 from src.server_control.server_ansi_parser import ConsoleAnsiEscapeParser
 from src.server_control.server_control_menu import SERVER_CONTROL_ALIAS_NAME_PROMPT, SERVER_CONTROL_GENERAL_PROMPT, \
     SERVER_CONTROL_ITEM_SELECT_PROMPT, ServerControlAccessModeMenu, ServerControlMgmtModeMenu, ServerControlMenu, \
@@ -91,8 +92,7 @@ class ServerControlMode:
         self._tx_func(self._server_prompt)
         return RcCode.SUCCESS
 
-    def _send_uds_socket_request_data(self, client_socket_obj, request_msg, serial_port_id=None, data=None):
-        request = RequestMsg(request=request_msg, serial_port_id=serial_port_id, data=data)
+    def _send_uds_socket_request_data(self, client_socket_obj, request):
         rc, request_str = request.serialize()
         if rc != RcCode.SUCCESS:
             self._logger.error(
@@ -322,12 +322,12 @@ class ServerControlPortAccessMode(ServerControlMode):
         return super().init_control_mode()
 
     def _update_menu(self):
-        rc = self._send_uds_socket_request_data(self._uds_mgmt_socket, "get_port_config")
+        rc = self._send_uds_socket_request_data(self._uds_mgmt_socket, GetPortConfigRequest())
         if rc != RcCode.SUCCESS:
             return rc
 
         # Receive the server reply
-        rc, port_config_dict = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, "get_port_config")
+        rc, port_config_dict = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.GET_PORT_CONFIG)
         if rc != RcCode.SUCCESS:
             return rc
 
@@ -451,11 +451,12 @@ class ServerControlSerialAccessMode(ServerControlMode):
 
     def _connect_serial_port(self):
         rc = self._send_uds_socket_request_data(
-            self._uds_client_socket, "connect_serial_port", self._serial_port_id)
+            self._uds_client_socket, 
+            ConnectSerialPortRequest(self._serial_port_id, os.getlogin()))
         if rc != RcCode.SUCCESS:
             return rc
 
-        rc, _  = self._receive_uds_socket_reply_data(self._uds_client_socket, "connect_serial_port")
+        rc, _  = self._receive_uds_socket_reply_data(self._uds_client_socket, ConsoleServerEvent.CONNECT_SERIAL_PORT)
         if rc != RcCode.SUCCESS:
             return rc
         return RcCode.SUCCESS
@@ -585,8 +586,8 @@ class ServerControlPortConfigMode(ServerControlMode):
         else:
             if self._select_item_id in ["a", "A"]:
                 self._logger.info("Get valid alisa name {}".format(process_data))
-                rc = self._send_uds_socket_request_data(self._uds_mgmt_socket,
-                    "config_alias_name", self._serial_port_id, {"alias_name": process_data})
+                rc = self._send_uds_socket_request_data(
+                    self._uds_mgmt_socket, ConfigAliasNameRequest(self._serial_port_id, process_data))
                 if rc != RcCode.SUCCESS:
                     self._refresh_screen_menu()
                     self._config_step = self.CONFIG_SELECT_ITEM
@@ -595,7 +596,7 @@ class ServerControlPortConfigMode(ServerControlMode):
                     self._baud_rate = -1
                     return rc
 
-                rc, _ = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, "config_alias_name")
+                rc, _ = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.CONFIG_ALIAS_NAME)
                 if rc != RcCode.SUCCESS:
                     self._refresh_screen_menu()
                     self._config_step = self.CONFIG_SELECT_ITEM
@@ -606,8 +607,8 @@ class ServerControlPortConfigMode(ServerControlMode):
             else:
                 try:
                     baud_rate = int(process_data)
-                    rc = self._send_uds_socket_request_data(self._uds_mgmt_socket,
-                        "config_baud_rate", self._serial_port_id, {"baud_rate": baud_rate})
+                    rc = self._send_uds_socket_request_data(
+                        self._uds_mgmt_socket, ConfigBaudRateRequest(self._serial_port_id, baud_rate))
                     if rc != RcCode.SUCCESS:
                         self._refresh_screen_menu()
                         self._config_step = self.CONFIG_SELECT_ITEM
@@ -617,7 +618,7 @@ class ServerControlPortConfigMode(ServerControlMode):
                         self._logger.info("Send the request failed..")
                         return rc
 
-                    rc, reply = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, "config_baud_rate")
+                    rc, reply = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.CONFIG_BAUD_RATE)
                     if rc != RcCode.SUCCESS:
                         self._logger.info("Receive the request failed..")
                         self._config_step = self.CONFIG_SELECT_ITEM
@@ -634,12 +635,12 @@ class ServerControlPortConfigMode(ServerControlMode):
         return rc
 
     def _update_menu(self):
-        rc = self._send_uds_socket_request_data(self._uds_mgmt_socket, "get_port_config")
+        rc = self._send_uds_socket_request_data(self._uds_mgmt_socket, GetPortConfigRequest())
         if rc != RcCode.SUCCESS:
             return rc
 
         # Receive the server reply
-        rc, port_config_dict = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, "get_port_config")
+        rc, port_config_dict = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.GET_PORT_CONFIG)
         if rc != RcCode.SUCCESS:
             return rc
 

@@ -1,5 +1,6 @@
 import json
 from src.common.rc_code import RcCode
+from src.console_server.processing.console_server_event import ConsoleServerEvent
 
 
 class Msg:
@@ -44,6 +45,27 @@ class RequestMsg(Msg):
         self.socket_fd = msg_dict["socket_fd"]
         self.data = msg_dict["data"]
         return RcCode.SUCCESS
+
+class ConnectSerialPortRequest(RequestMsg):
+    def __init__(self, serial_port_id, username):
+        RequestMsg.__init__(self, ConsoleServerEvent.CONNECT_SERIAL_PORT, serial_port_id, None, {"usename": username})
+
+class GetPortConfigRequest(RequestMsg):
+    def __init__(self):
+        RequestMsg.__init__(self, ConsoleServerEvent.GET_PORT_CONFIG)
+
+class ConfigAliasNameRequest(RequestMsg):
+    def __init__(self, serial_port_id, alias_name):
+        RequestMsg.__init__(self, ConsoleServerEvent.CONFIG_ALIAS_NAME, serial_port_id, None, {"alias_name": alias_name})
+
+class ConfigBaudRateRequest(RequestMsg):
+    def __init__(self, serial_port_id, baud_rate):
+        RequestMsg.__init__(self, ConsoleServerEvent.CONFIG_BAUD_RATE, serial_port_id, None, {"baud_rate": baud_rate})
+
+class ConfigWritePermissionRequest(RequestMsg):
+    def __init__(self, serial_port_id, username, permission):
+        RequestMsg.__init__(self, ConsoleServerEvent.CONFIG_WRITE_PERMISSION, serial_port_id, None, 
+                            {"usename": username, "permission": permission})
 
 class ReplyMsg(Msg):
     def __init__(self, request=None, serial_port_id=None, socket_fd=None, data=None, result=None):
