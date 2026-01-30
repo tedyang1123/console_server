@@ -6,7 +6,7 @@ from src.common.msg import ReplyMsg, RequestMsg, msg_serialize
 from src.common.rc_code import RcCode
 from src.common.uds_lib import UnixDomainConnectedClientSocket, UnixDomainServerSocket
 from src.common.utiliity import TEST_MODE
-from src.console_server.processing.console_server_event import ConsoleServerEvent
+from src.console_server.processing.console_server_definition import ConsoleServerEvent
 from src.console_server.processing.console_server_port import ConsoleServerSerialPort
 
 
@@ -18,13 +18,16 @@ class _ConsolerServerHandlerDb:
         self._server_socket_epoll = select.epoll()
         self._client_socket_dict = {}
         self._client_socket_epoll = select.epoll()
+        self._group_dict = {}
+        self._user_dict = {}
     
     def add_serial_port(self, serial_port_id, serial_port_obj):
         if serial_port_id in self._serial_port_info_dict:
             return RcCode.DATA_EXIST
         self._serial_port_info_dict[serial_port_id] = {
             "serial_port_obj": serial_port_obj, 
-            "fd_dict": {}
+            "fd_dict": {},
+            "group_list": []
         }
         return RcCode.SUCCESS
     
@@ -41,7 +44,7 @@ class _ConsolerServerHandlerDb:
     
     def add_serial_port_access_socket(self, serial_port_id, uds_client_socket_obj, username):
         if serial_port_id not in self._serial_port_info_dict:
-            return RcCode.DATA_NOT_FOUND, None
+            return RcCode.DATA_NOT_FOUND
         socket_fd = uds_client_socket_obj.uds_client_socket_fd_get()
         if socket_fd in self._serial_port_info_dict[serial_port_id]:
             return RcCode.DATA_EXIST
@@ -128,6 +131,87 @@ class _ConsolerServerHandlerDb:
         if client_socket_fd not in self._pending_conn_dict:
             return RcCode.DATA_NOT_FOUND, None
         return RcCode.SUCCESS, self._pending_conn_dict[client_socket_fd]
+    
+    def get_user_port_group(self, group_id=None):
+        if group_id is None:
+            return RcCode.SUCCESS, self._port_group_dict
+        if group_id not in self._port_group_dict:
+            return RcCode.DATA_NOT_FOUND, None
+        return RcCode.SUCCESS, self._port_group_dict[group_id]
+    
+    def add_user_account(self, username, group_name):
+        if username in self._user_dict:
+            return RcCode.DATA_EXIST
+        if group_name not in self._group_dict:
+            return RcCode.DATA_NOT_FOUND
+        self._user_dict[username] = {"group_list": [group_name]}
+        return RcCode.SUCCESS
+    
+    def del_user_account(self, username):
+        if username not in self._user_dict:
+            return RcCode.DATA_NOT_FOUND
+        del self._user_dict[username]
+        return RcCode.SUCCESS
+    
+    def get_user_account(self, username=None):
+        if username is None:
+            return RcCode.SUCCESS, self._user_dict
+        if username not in self._user_dict:
+            return RcCode.DATA_NOT_FOUND, None
+        return RcCode.SUCCESS, self._user_dict[username]
+    
+    def create_group(self, group_name, role):
+        if group_name in self._group_dict:
+            return RcCode.DATA_EXIST
+        self._group_dict[group_name] = {"role": role}
+        return RcCode.SUCCESS
+    
+    def destroy_group(self, group_name):
+        if group_name not in self._group_dict:
+            return RcCode.DATA_NOT_FOUND
+        del self._group_dict[group_name]
+        return RcCode.SUCCESS
+    
+    def get_group(self, group_name=None):
+        if group_name is None:
+            return RcCode.SUCCESS, self._group_dict
+        if group_name not in self._group_dict:
+            return RcCode.DATA_NOT_FOUND, None
+        return RcCode.SUCCESS, self._group_dict[group_name]
+    
+    def user_join_group(self, username, group_name):
+        if username not in self._user_dict:
+            return RcCode.DATA_NOT_FOUND
+        group_list = self._user_dict[username]["group_list"]
+        if group_name in group_list:
+            return RcCode.DATA_EXIST
+        group_list.append(group_name)
+        return RcCode.SUCCESS
+    
+    def user_leave_group(self, username, group_name):
+        if username not in self._user_dict:
+            return RcCode.DATA_NOT_FOUND
+        group_list = self._user_dict[username]["group_list"]
+        if group_name not in group_list:
+            return RcCode.DATA_NOT_FOUND
+        group_list.remove(group_name)
+        return RcCode.SUCCESS
+    
+    def port_join_group(self, serial_port_id, group_name):
+        if serial_port_id not in self._serial_port_info_dict:
+            return RcCode.DATA_NOT_FOUND
+        if group_name in self._serial_port_info_dict[serial_port_id]["group_list"]:
+            return RcCode.DATA_EXIST
+        self._serial_port_info_dict[serial_port_id]["group_list"].append(group_name)
+        return RcCode.SUCCESS
+    
+    def port_leave_group(self, serial_port_id, group_name):
+        if serial_port_id not in self._serial_port_info_dict:
+            return RcCode.DATA_NOT_FOUND
+        if group_name in self._serial_port_info_dict[serial_port_id]["group_list"]:
+            return RcCode.DATA_NOT_FOUND
+        self._serial_port_info_dict[serial_port_id]["group_list"].remove(group_name)
+        return RcCode.SUCCESS
 
 
 MAX_MSG_SIZE = 1024
@@ -204,6 +288,8 @@ class ConsolerServerHandler(multiprocessing.Process):
         if rc != RcCode.SUCCESS:
             return rc
         self._logger.info(self._logger_system.set_logger_rc_code("Init server socket complete."))
+
+        # Init the port group
 
         # Notify the console server that process has processed completely
         rc = self._send_queue_message(request=ConsoleServerEvent.INIT_HANDLER, result="OK")
@@ -316,6 +402,211 @@ class ConsolerServerHandler(multiprocessing.Process):
             self._logger_system.set_logger_rc_code("Set the new baud rate to the serial port {} successful.".format(serial_port_id)))
         return RcCode.SUCCESS
     
+    def _process_add_user_account(self, msg_dict):
+        username = msg_dict.data["username"]
+        group_name = msg_dict.data["group_name"]
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Process add username {} request".format(username)))
+
+        rc = self._db.add_user_account(username, group_name)
+        if rc != RcCode.SUCCESS:
+            rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "failed")
+            if rc != RcCode.SUCCESS:
+                return rc
+
+        # Notify the console server that serial has configured the new baud rate
+        msg_dict.data["process_id"] = self._process_id
+        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
+        if rc != RcCode.SUCCESS:
+            return rc
+        
+        self._logger.info(self._logger_system.set_logger_rc_code("process the request to handler{}".format(msg_dict.data["process_id"])))
+
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Add the user {} and the group {} successful.".format(username, group_name)))
+        return RcCode.SUCCESS
+    
+    def _process_del_user_account(self, msg_dict):
+        username = msg_dict.data["username"]
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Process delete username {} request".format(username)))
+
+        # Delete the username to DB
+        rc = self._db.del_user_account(username)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not add the username {} to DB".format(username), rc=rc))
+            reply_rc = self._reply_queue_message(
+                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not add the username {} to DB".format(username), "Failed")
+            if reply_rc != RcCode.SUCCESS:
+                return reply_rc
+            return RcCode.SUCCESS
+
+        # Notify the console server that serial has configured the new baud rate
+        msg_dict.data["process_id"] = self._process_id
+        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
+        if rc != RcCode.SUCCESS:
+            return rc
+
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Delete the user {} successful.".format(username)))
+        return RcCode.SUCCESS
+    
+    def _process_add_group(self, msg_dict):
+        group_name = msg_dict.data["group_name"]
+        role = msg_dict.data["role"]
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Process add group {} request".format(group_name)))
+
+        # Delete the username to DB
+        rc = self._db.create_group(group_name, role)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not add the username {} to DB".format(username), rc=rc))
+            reply_rc = self._reply_queue_message(
+                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not add the username {} to DB".format(username), "Failed")
+            if reply_rc != RcCode.SUCCESS:
+                return reply_rc
+            return RcCode.SUCCESS
+
+        # Notify the console server that serial has configured the new baud rate
+        msg_dict.data["process_id"] = self._process_id
+        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
+        if rc != RcCode.SUCCESS:
+            return rc
+
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Delete the user {} successful.".format(group_name)))
+        return RcCode.SUCCESS
+
+    def _process_del_group(self, msg_dict):
+        group_name = msg_dict.data["group_name"]
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Process delete group {} request".format(group_name)))
+        
+        # TBD: Check if the user has delete from the group
+
+        # Delete the username to DB
+        rc = self._db.destroy_group(group_name)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not delete the group {} from DB".format(group_name), rc=rc))
+            reply_rc = self._reply_queue_message(
+                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not delete the group {} from DB".format(group_name), "Failed")
+            if reply_rc != RcCode.SUCCESS:
+                return reply_rc
+            return RcCode.SUCCESS
+
+        # Notify the console server that serial has configured the new baud rate
+        msg_dict.data["process_id"] = self._process_id
+        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
+        if rc != RcCode.SUCCESS:
+            return rc
+
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Delete the user {} successful.".format(group_name)))
+        return RcCode.SUCCESS
+
+    def _process_user_join_group(self, msg_dict):
+        group_name = msg_dict.data["group_name"]
+        username = msg_dict.data["username"]
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Process user {} join group {} request".format(username, group_name)))
+
+        # Delete the username to DB
+        rc = self._db.user_join_group(username, group_name)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not add the username {} to DB".format(username), rc=rc))
+            reply_rc = self._reply_queue_message(
+                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not add the username {} to DB".format(username), "Failed")
+            if reply_rc != RcCode.SUCCESS:
+                return reply_rc
+            return RcCode.SUCCESS
+
+        # Notify the console server that serial has configured the new baud rate
+        msg_dict.data["process_id"] = self._process_id
+        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
+        if rc != RcCode.SUCCESS:
+            return rc
+
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("User {} join group {} successful.".format(username, group_name)))
+        return RcCode.SUCCESS
+
+    def _process_user_leave_group(self, msg_dict):
+        group_name = msg_dict.data["group_name"]
+        username = msg_dict.data["username"]
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Process user {} leave group {} request".format(username, group_name)))
+
+        # Delete the username to DB
+        rc = self._db.user_leave_group(username, group_name)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not add the username {} to DB".format(username), rc=rc))
+            reply_rc = self._reply_queue_message(
+                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not add the username {} to DB".format(username), "Failed")
+            if reply_rc != RcCode.SUCCESS:
+                return reply_rc
+            return RcCode.SUCCESS
+
+        # Notify the console server that serial has configured the new baud rate
+        msg_dict.data["process_id"] = self._process_id
+        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
+        if rc != RcCode.SUCCESS:
+            return rc
+
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("User {} leave group {} successful.".format(username, group_name)))
+        return RcCode.SUCCESS
+
+    def _process_port_join_group(self, msg_dict):
+        group_name = msg_dict.data["group_name"]
+        serial_port_id = msg_dict.serial_port_id
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Process port {} join group {} request".format(serial_port_id, group_name)))
+
+        # Delete the username to DB
+        rc = self._db.port_join_group(serial_port_id, group_name)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not join the serial port {} to the group in the DB".format(serial_port_id), rc=rc))
+            reply_rc = self._reply_queue_message(
+                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not join the serial port to the group in the DB".format(serial_port_id), "Failed")
+            if reply_rc != RcCode.SUCCESS:
+                return reply_rc
+            return RcCode.SUCCESS
+
+        # Notify the console server that serial has configured the new baud rate
+        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
+        if rc != RcCode.SUCCESS:
+            return rc
+
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Port {} join group {} successful.".format(serial_port_id, group_name)))
+        return RcCode.SUCCESS
+
+    def _process_port_leave_group(self, msg_dict):
+        group_name = msg_dict.data["group_name"]
+        serial_port_id = msg_dict.serial_port_id
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Process port {} leave group {} request".format(serial_port_id, group_name)))
+
+        # Delete the username to DB
+        rc = self._db.port_join_group(serial_port_id, group_name)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not remove the serial port {} to the group in the DB".format(serial_port_id), rc=rc))
+            reply_rc = self._reply_queue_message(
+                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not remove the serial port to the group in the DB".format(serial_port_id), "Failed")
+            if reply_rc != RcCode.SUCCESS:
+                return reply_rc
+            return RcCode.SUCCESS
+
+        # Notify the console server that serial has configured the new baud rate
+        msg_dict.data["process_id"] = self._process_id
+        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
+        if rc != RcCode.SUCCESS:
+            return rc
+
+        self._logger.info(
+            self._logger_system.set_logger_rc_code("Port {} leave group {} successful.".format(serial_port_id, group_name)))
+        return RcCode.SUCCESS
+    
     def process_message_queue_data(self):
         rc, msg_dict = self._rx_queue_func()
         if rc == RcCode.QUEUE_ENPTY:
@@ -324,30 +615,47 @@ class ConsolerServerHandler(multiprocessing.Process):
         elif rc != RcCode.SUCCESS:
             return rc
 
+        call_func = None
         # Process the request
         match msg_dict.request:
             case ConsoleServerEvent.INIT_SERIAL_PORT:
-                rc = self._process_init_serial_port_event(msg_dict)
-                if rc != RcCode.SUCCESS:
-                    return rc
+                call_func = self._process_init_serial_port_event
             case ConsoleServerEvent.CONFIG_BAUD_RATE:
-                rc = self._process_config_baud_rate(msg_dict)
-                if rc != RcCode.SUCCESS:
-                    return rc
+                call_func = self._process_config_baud_rate
+            case ConsoleServerEvent.CREATE_GROUP:
+                call_func = self._process_add_group
+            case ConsoleServerEvent.DESTROY_GROUP:
+                call_func = self._process_del_group
+            case ConsoleServerEvent.ADD_USER_ACCOUNT:
+                call_func = self._process_add_user_account
+            case ConsoleServerEvent.DEL_USER_ACCOUNT:
+                call_func = self._process_del_user_account
+            case ConsoleServerEvent.USER_JOIN_GROUP:
+                call_func = self._process_user_join_group
+            case ConsoleServerEvent.USER_LEAVE_GROUP:
+                call_func = self._process_user_leave_group
+            case ConsoleServerEvent.PORT_JOIN_GROUP:
+                call_func = self._process_port_join_group
+            case ConsoleServerEvent.PORT_LEAVE_GROUP:
+                call_func = self._process_port_leave_group
             case _:
                 # Notify the console server that the request is invalid
                 rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Invalid the request", "failed")
                 if rc != RcCode.SUCCESS:
                     return rc
+                return rc
+        rc = call_func(msg_dict)
+        if rc != RcCode.SUCCESS:
+            return rc
         return RcCode.SUCCESS
     
     ##########################################################################################################
     # Process Server Socket Data Relate API
     ##########################################################################################################
 
-    def _reply_client_message(self, client_socket_obj, request, result, data):
+    def _reply_client_message(self, client_socket_obj, request=None, serial_port_id=None, socket_fd=None, data=None, result=None):
         # Create reply message
-        reply_msg = ReplyMsg(request, None, None, data, result)
+        reply_msg = ReplyMsg(request, serial_port_id, socket_fd, data, result)
         rc, msg_dict = reply_msg.get_msg()
         if rc != RcCode.SUCCESS:
             self._logger.error(
@@ -428,7 +736,7 @@ class ConsolerServerHandler(multiprocessing.Process):
                     self._logger_system.set_logger_rc_code("Can not open serial port {}".format(serial_port_id), rc=rc))
                 return rc
 
-        rc = self._reply_client_message(pending_connection, request.request, "OK", None)
+        rc = self._reply_client_message(pending_connection, request.request, request.serial_port_id, request.socket_fd, request.data, "OK")
         if rc != RcCode.SUCCESS:
             return rc
         self._logger.info(
@@ -566,12 +874,6 @@ class ConsolerServerHandler(multiprocessing.Process):
             rc = self._close_client_socket(serial_port_id, client_socket_obj)
             if rc != RcCode.SUCCESS:
                 return rc
-            return RcCode.SUCCESS
-        
-        rc, permission = self._db.get_socket_write_permission(serial_port_id, client_socket_obj.uds_client_socket_fd_get())
-        if rc != RcCode.SUCCESS:
-            return rc
-        if not permission:
             return RcCode.SUCCESS
 
         # Send the data to serial port

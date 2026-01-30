@@ -4,7 +4,7 @@ import time
 from src.common.msg import ConfigAliasNameRequest, ConfigBaudRateRequest, ConnectSerialPortRequest, GetPortConfigRequest, ReplyMsg, RequestMsg
 from src.common.rc_code import RcCode
 from src.common.uds_lib import UnixDomainClientSocket
-from src.console_server.processing.console_server_event import ConsoleServerEvent
+from src.console_server.processing.console_server_definition import ConsoleServerEvent
 from src.server_control.server_ansi_parser import ConsoleAnsiEscapeParser
 from src.server_control.server_control_menu import SERVER_CONTROL_ALIAS_NAME_PROMPT, SERVER_CONTROL_GENERAL_PROMPT, \
     SERVER_CONTROL_ITEM_SELECT_PROMPT, ServerControlAccessModeMenu, ServerControlMgmtModeMenu, ServerControlMenu, \

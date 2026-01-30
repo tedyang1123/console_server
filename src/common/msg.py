@@ -1,6 +1,6 @@
 import json
 from src.common.rc_code import RcCode
-from src.console_server.processing.console_server_event import ConsoleServerEvent
+from src.console_server.processing.console_server_definition import ConsoleServerEvent
 
 
 class Msg:
@@ -28,7 +28,7 @@ class Msg:
 
 
 class RequestMsg(Msg):
-    def __init__(self, request=None, serial_port_id=None, socket_fd=None,  data=None):
+    def __init__(self, request=None, serial_port_id=None, socket_fd=None, data=None):
         Msg.__init__(self, request, serial_port_id, socket_fd, data)
 
     def serialize(self):
@@ -48,7 +48,7 @@ class RequestMsg(Msg):
 
 class ConnectSerialPortRequest(RequestMsg):
     def __init__(self, serial_port_id, username):
-        RequestMsg.__init__(self, ConsoleServerEvent.CONNECT_SERIAL_PORT, serial_port_id, None, {"usename": username})
+        RequestMsg.__init__(self, ConsoleServerEvent.CONNECT_SERIAL_PORT, serial_port_id, None, {"username": username})
 
 class GetPortConfigRequest(RequestMsg):
     def __init__(self):
@@ -62,10 +62,52 @@ class ConfigBaudRateRequest(RequestMsg):
     def __init__(self, serial_port_id, baud_rate):
         RequestMsg.__init__(self, ConsoleServerEvent.CONFIG_BAUD_RATE, serial_port_id, None, {"baud_rate": baud_rate})
 
-class ConfigWritePermissionRequest(RequestMsg):
-    def __init__(self, serial_port_id, username, permission):
-        RequestMsg.__init__(self, ConsoleServerEvent.CONFIG_WRITE_PERMISSION, serial_port_id, None, 
-                            {"usename": username, "permission": permission})
+class CreateGroupRequest(RequestMsg):
+    def __init__(self, group_name, role):
+        RequestMsg.__init__(self, ConsoleServerEvent.CREATE_GROUP, None, None, {"group_name": group_name, "role": role})
+
+class DestroyGroupRequest(RequestMsg):
+    def __init__(self, group_name):
+        RequestMsg.__init__(self, ConsoleServerEvent.DESTROY_GROUP, None, None, {"group_name": group_name})
+
+class GetGroupRequest(RequestMsg):
+    def __init__(self):
+        RequestMsg.__init__(self, ConsoleServerEvent.GET_GROUP)
+
+class AddUserAccountRequest(RequestMsg):
+    def __init__(self, username, role, group_name):
+        RequestMsg.__init__(self, ConsoleServerEvent.ADD_USER_ACCOUNT, None, None, {"username": username, "role": role, "group_name": group_name})
+
+class DelUserAccountRequest(RequestMsg):
+    def __init__(self, username):
+        RequestMsg.__init__(self, ConsoleServerEvent.DEL_USER_ACCOUNT, None, None, {"username": username})
+
+class ModifyUserRole(RequestMsg):
+    def __init__(self, username, role):
+        RequestMsg.__init__(self, ConsoleServerEvent.MODIFY_USER_ROLE, None, None, {"username": username, "role": role})
+
+class GetUserAccount(RequestMsg):
+    def __init__(self, username):
+        if username is not None:
+            RequestMsg.__init__(self, ConsoleServerEvent.GET_USER_ACCOUT, None, None, {"username": username})
+        else:
+            RequestMsg.__init__(self, ConsoleServerEvent.GET_USER_ACCOUT, None, None)
+
+class UserJoinGroupRequest(RequestMsg):
+    def __init__(self, username, group_name):
+        RequestMsg.__init__(self, ConsoleServerEvent.USER_JOIN_GROUP, None, None, {"username": username, "group_name": group_name})
+
+class UserLeaveGroupRequest(RequestMsg):
+    def __init__(self, username, group_name):
+        RequestMsg.__init__(self, ConsoleServerEvent.USER_LEAVE_GROUP, None, None, {"username": username, "group_name": group_name})
+
+class PortJoinGroupRequest(RequestMsg):
+    def __init__(self, serial_port_id, group_name):
+        RequestMsg.__init__(self, ConsoleServerEvent.PORT_JOIN_GROUP, serial_port_id, None, {"group_name": group_name})
+
+class PortLeaveGroupRequest(RequestMsg):
+    def __init__(self, serial_port_id, group_name):
+        RequestMsg.__init__(self, ConsoleServerEvent.PORT_LEAVE_GROUP, serial_port_id, None, {"group_name": group_name})
 
 class ReplyMsg(Msg):
     def __init__(self, request=None, serial_port_id=None, socket_fd=None, data=None, result=None):

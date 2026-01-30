@@ -7,7 +7,7 @@ from src.common.msg import ReplyMsg, RequestMsg, msg_deserialize, msg_serialize
 from src.common.msg_queue import BiMsgQueue
 from src.common.rc_code import RcCode
 from src.common.uds_lib import UnixDomainServerSocket, UnixDomainConnectedClientSocket
-from src.console_server.processing.console_server_event import ConsoleServerEvent
+from src.console_server.processing.console_server_definition import ConsoleServerEvent, UserRole
 from src.console_server.processing.console_server_handler import ConsolerServerHandler
 
 
@@ -18,13 +18,14 @@ VALID_BAUD_RATE = [50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800,
 MAX_HANDLER_PROCESS =  8
 
 
-class _ConsoleServer:
+class _ConsoleServerDb:
     def __init__(self):
         self._client_socket_dict = {}
         self._process_handler_dict = {}
         self._process_queue_dict = {}
         self._serial_port_group_dict = {}
         self._serial_port_dict = {}
+        self._group_dict = {}
         self._user_dict = {}
 
     def add_client_socket(self, client_socket_fd, client_socket):
@@ -65,6 +66,14 @@ class _ConsoleServer:
         if "request" not in self._client_socket_dict[client_socket_fd]:
             return RcCode.DATA_NOT_FOUND, None
         return RcCode.SUCCESS, self._client_socket_dict[client_socket_fd]["request"]
+    
+    def update_client_request(self, client_socket_fd, request):
+        if client_socket_fd not in self._client_socket_dict:
+            return RcCode.DATA_NOT_FOUND
+        if "request" not in self._client_socket_dict[client_socket_fd]:
+            return RcCode.DATA_NOT_FOUND
+        self._client_socket_dict[client_socket_fd]["request"] = request
+        return RcCode.SUCCESS
     
     def add_process_handler(self, process_id, handler_obj, message_queue):
         if process_id in self._process_handler_dict:
@@ -127,7 +136,8 @@ class _ConsoleServer:
         self._serial_port_dict[serial_port_id] = {
             "baud_rate": baud_rate,
             "alias_name": alias_name,
-            "dev_tty_id": dev_tty
+            "dev_tty_id": dev_tty,
+            "group_list": []
         }
         self._serial_port_group_dict[group_id][serial_port_id] = self._serial_port_dict[serial_port_id]
         return RcCode.SUCCESS
@@ -156,6 +166,91 @@ class _ConsoleServer:
             return RcCode.DATA_NOT_FOUND
         self._serial_port_dict[serial_port_id][field] = data
         return RcCode.SUCCESS
+    
+    def add_user_account(self, username, role, group_name):
+        if username in self._user_dict:
+            return RcCode.DATA_EXIST
+        if group_name not in self._group_dict:
+            return RcCode.DATA_NOT_FOUND
+        self._user_dict[username] = {"role": role, "group_list": [group_name]}
+        return RcCode.SUCCESS
+    
+    def del_user_account(self, username):
+        if username not in self._user_dict:
+            return RcCode.DATA_NOT_FOUND
+        del self._user_dict[username]
+        return RcCode.SUCCESS
+    
+    def get_user_account(self, username):
+        if username is None:
+            return RcCode.SUCCESS, self._user_dict
+        if username not in self._user_dict:
+            return RcCode.DATA_EXIST, None
+        return RcCode.SUCCESS, self._user_dict[username]
+    
+    def get_user_account_role(self, username):
+        if username not in self._user_dict:
+            return RcCode.DATA_NOT_FOUND, None
+        return RcCode.SUCCESS, self._user_dict[username]["role"]
+    
+    def modify_user_account_role(self, username, role):
+        if username not in self._user_dict:
+            return RcCode.DATA_NOT_FOUND
+        self._user_dict[username]["role"] = role
+        return RcCode.SUCCESS
+    
+    def create_group(self, group_name, role):
+        if group_name in self._group_dict:
+            return RcCode.DATA_EXIST
+        self._group_dict[group_name] = {"role": role}
+        return RcCode.SUCCESS
+    
+    def destroy_group(self, group_name):
+        if group_name not in self._group_dict:
+            return RcCode.DATA_NOT_FOUND
+        del self._group_dict[group_name]
+        return RcCode.SUCCESS
+    
+    def get_group(self, group_name=None):
+        if group_name is None:
+            return RcCode.SUCCESS, self._group_dict
+        if group_name not in self._group_dict:
+            return RcCode.DATA_NOT_FOUND, None
+        return RcCode.SUCCESS, self._group_dict[group_name]
+    
+    def user_join_group(self, username, group_name):
+        if username not in self._user_dict:
+            return RcCode.DATA_NOT_FOUND
+        group_list = self._user_dict[username]["group_list"]
+        if group_name in group_list:
+            return RcCode.DATA_EXIST
+        group_list.append(group_name)
+        return RcCode.SUCCESS
+    
+    def user_leave_group(self, username, group_name):
+        if username not in self._user_dict:
+            return RcCode.DATA_NOT_FOUND
+        group_list = self._user_dict[username]["group_list"]
+        if group_name not in group_list:
+            return RcCode.DATA_NOT_FOUND
+        group_list.remove(group_name)
+        return RcCode.SUCCESS
+    
+    def port_join_group(self, serial_port_id, group_name):
+        if serial_port_id not in self._serial_port_dict:
+            return RcCode.DATA_NOT_FOUND
+        if group_name in self._serial_port_dict[serial_port_id]["group_list"]:
+            return RcCode.DATA_EXIST
+        self._serial_port_dict[serial_port_id]["group_list"].append(group_name)
+        return RcCode.SUCCESS
+    
+    def port_leave_group(self, serial_port_id, group_name):
+        if serial_port_id not in self._serial_port_dict:
+            return RcCode.DATA_NOT_FOUND
+        if group_name in self._serial_port_dict[serial_port_id]["group_list"]:
+            return RcCode.DATA_NOT_FOUND
+        self._serial_port_dict[serial_port_id]["group_list"].remove(group_name)
+        return RcCode.SUCCESS
 
 
 class ConsoleServer(multiprocessing.Process):
@@ -174,7 +269,7 @@ class ConsoleServer(multiprocessing.Process):
 
         self._server_mgmt_epoll = None
 
-        self._db = _ConsoleServer()
+        self._db = _ConsoleServerDb()
 
         self._processing_time = 0.01
     
@@ -451,14 +546,56 @@ class ConsoleServer(multiprocessing.Process):
                 self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
                 return rc
         return RcCode.SUCCESS
+    
+    def _update_process_reply_info(self, reply, client_socket_obj):
+        # Get the sourece request
+        rc, request = self._db.get_client_request(reply.socket_fd)
+        if rc != RcCode.SUCCESS:
+            self._logger.info(self._logger_system.set_logger_rc_code("Delete origin request fail.", rc=rc))
+            reply_rc = self._reply_client_message(
+                client_socket_obj, reply.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return rc
+
+        process_id = reply.data["process_id"]
+        request.data["ready"][process_id] = True
+        request.data["status"][process_id] = True if reply.result != "OK" else False
+        return RcCode.SUCCESS
+    
+    def _check_process_reply_info(self, reply, client_socket_obj):
+        # Get the sourece request
+        rc, request = self._db.get_client_request(reply.socket_fd)
+        if rc != RcCode.SUCCESS:
+            self._logger.info(self._logger_system.set_logger_rc_code("Delete origin request fail.", rc=rc))
+            reply_rc = self._reply_client_message(
+                client_socket_obj, reply.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc, None, None
+            return rc, None, None
+
+        complete = True
+        status = True
+        for i in range(0, MAX_HANDLER_PROCESS):
+            if not request.data["ready"][i]:
+                complete = False
+                status = False
+                break
+            complete = complete and request.data["ready"][i]
+            status = status and request.data["ready"][i]
+        return RcCode.SUCCESS, complete, status
 
     def _handle_client_reply(self, reply):
+        self._logger.info(self._logger_system.set_logger_rc_code("Receive the request {}.".format(reply.request)))
         # Do other action if request need
         match reply.request:
             case ConsoleServerEvent.INIT_SERIAL_PORT:
                 # The serial port initialize completely. Nothing to do.
                 return RcCode.SUCCESS
-            case ConsoleServerEvent.CONFIG_BAUD_RATE:
+            case ConsoleServerEvent.CONFIG_BAUD_RATE | \
+                ConsoleServerEvent.PORT_JOIN_GROUP | ConsoleServerEvent.PORT_LEAVE_GROUP:
                 # Get the socket object
                 rc, client_socket_obj = self._db.get_client_socket(reply.socket_fd)
                 if rc != RcCode.SUCCESS:
@@ -475,14 +612,34 @@ class ConsoleServer(multiprocessing.Process):
                 rc = self._update_request_information(reply, client_socket_obj)
                 if rc != RcCode.SUCCESS:
                     return rc
-
-                # The new baud rate has already taken effect. Updat the port db
-                rc = self._db.modify_serial_port(reply.serial_port_id, "baud_rate", reply.data["baud_rate"])
+            case ConsoleServerEvent.CREATE_GROUP | ConsoleServerEvent.DESTROY_GROUP | \
+                ConsoleServerEvent.ADD_USER_ACCOUNT | ConsoleServerEvent.DEL_USER_ACCOUNT | \
+                ConsoleServerEvent.USER_JOIN_GROUP | ConsoleServerEvent.USER_LEAVE_GROUP:
+                # Get the socket object
+                rc, client_socket_obj = self._db.get_client_socket(reply.socket_fd)
                 if rc != RcCode.SUCCESS:
-                    self._logger.error(self._logger_system.set_logger_rc_code("Update the DB fail.", rc=rc))
-                    rc = self._reply_client_message(client_socket_obj, reply.request, "failed", "Update the DB fail.")
-                    if rc != RcCode.SUCCESS:
-                        return rc
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code("Can not find the socket in the DB for request {}.".format(reply.request), rc=rc))
+                    return rc
+                
+                # Check if the request is valid
+                rc = self._check_request_is_valid(reply, client_socket_obj)
+                if rc != RcCode.SUCCESS:
+                    return rc
+
+                # Update DB if handler handles the request successful
+                rc = self._update_process_reply_info(reply, client_socket_obj)
+                if rc != RcCode.SUCCESS:
+                    return rc
+
+                # Check the request status
+                rc, complete, status = self._check_process_reply_info(reply, client_socket_obj)
+                if rc != RcCode.SUCCESS:
+                    return rc
+                if not complete:
+                    return RcCode.SUCCESS
+                reply.result = "OK" if status else "Failed"
+
             #
             # Note: we add the case here to process reply message only if the message must update in the port DB.
             #
@@ -558,6 +715,14 @@ class ConsoleServer(multiprocessing.Process):
                 self._logger_system.set_logger_rc_code("Can not gert the message queue.", rc=rc))
             return rc
 
+        # Config the new baud rate in the DB
+        rc = self._db.modify_serial_port(client_request.serial_port_id, "baud_rate", client_request.data["baud_rate"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Update the DB fail.", rc=rc))
+            rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Update the DB fail.")
+            if rc != RcCode.SUCCESS:
+                return rc
+
         # Send the request to the handler
         handler_request = RequestMsg(
             client_request.request, client_request.serial_port_id, client_socket_fd, client_request.data)
@@ -613,6 +778,476 @@ class ConsoleServer(multiprocessing.Process):
         self._logger.info(self._logger_system.set_logger_rc_code("Process new get port config request successful."))
         return RcCode.SUCCESS
 
+    def _process_create_group(self, client_socket_fd, client_request, client_socket_obj):
+        # Update the DB
+        rc = self._db.create_group(client_request.data["group_name"], client_request.data["role"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Delete origin request fail.", rc=rc))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return rc
+
+        # Check the target handler
+        for process_id in range(0, MAX_HANDLER_PROCESS):
+            rc, message_queue = self._db.get_process_queue(process_id)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not get the message queue.", rc=rc))
+                return rc
+
+            # Send the request to the handler
+            handler_request = RequestMsg(client_request.request, None, client_socket_fd, client_request.data)
+            rc = message_queue.local_peer_send_msg(handler_request)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not send the meesage to the remote handler.", rc=rc))
+                rc_reply_msg = self._reply_client_message(
+                    client_socket_obj, client_request.request, "failed", "Can not send the meesage to remote handler.")
+                if rc_reply_msg != RcCode.SUCCESS:
+                    return rc_reply_msg
+                return rc
+            self._logger.info(self._logger_system.set_logger_rc_code("Send the request to handler{}".format(process_id)))
+
+        # Store the request sending to the handler
+        new_data = client_request.data
+        new_data["ready"] = {}
+        new_data["status"] = {}
+        for i in range(0, MAX_HANDLER_PROCESS):
+            new_data["ready"][i] = False
+            new_data["status"][i] = False
+        handler_request = RequestMsg(client_request.request, None, client_socket_fd, new_data)
+        rc = self._db.add_client_request(client_socket_fd, handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not add the client request in the DB.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not add the client request in the DB.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Process add group request successful."))
+        return RcCode.SUCCESS
+    
+    def _process_destroy_group(self, client_socket_fd, client_request, client_socket_obj):
+        # Update the DB
+        rc = self._db.destroy_group(client_request.data["group_name"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Delete origin request fail.", rc=rc))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return rc
+
+        # Check the target handler
+        for process_id in range(0, MAX_HANDLER_PROCESS):
+            rc, message_queue = self._db.get_process_queue(process_id)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not get the message queue.", rc=rc))
+                return rc
+
+            # Send the request to the handler
+            handler_request = RequestMsg(client_request.request, None, client_socket_fd, client_request.data)
+            rc = message_queue.local_peer_send_msg(handler_request)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not send the meesage to the remote handler.", rc=rc))
+                rc_reply_msg = self._reply_client_message(
+                    client_socket_obj, client_request.request, "failed", "Can not send the meesage to remote handler.")
+                if rc_reply_msg != RcCode.SUCCESS:
+                    return rc_reply_msg
+                return rc
+            self._logger.info(self._logger_system.set_logger_rc_code("Send the request to handler{}".format(process_id)))
+
+        # Store the request sending to the handler
+        new_data = client_request.data
+        new_data["ready"] = {}
+        new_data["status"] = {}
+        for i in range(0, MAX_HANDLER_PROCESS):
+            new_data["ready"][i] = False
+            new_data["status"][i] = False
+        handler_request = RequestMsg(client_request.request, None, client_socket_fd, new_data)
+        rc = self._db.add_client_request(client_socket_fd, handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not add the client request in the DB.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not add the client request in the DB.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Process destroy group request successful."))
+        return RcCode.SUCCESS
+    
+    def _process_get_group(self, client_socket_fd, client_request, client_socket_obj):
+        rc, group_dict = self._db.get_group()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not get the group.", rc=rc))
+            rc_reply_msg = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Update the DB fail.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc_reply_msg
+        rc = self._reply_client_message(client_socket_obj, client_request.request, "OK", group_dict)
+        if rc != RcCode.SUCCESS:
+            return rc
+        self._logger.info(self._logger_system.set_logger_rc_code("Process new get port config request successful."))
+        return RcCode.SUCCESS
+    
+    def _process_add_user_account(self, client_socket_fd, client_request, client_socket_obj):
+        # Check if role is valid
+        if not UserRole.is_valid(client_request.data["role"]):
+            self._logger.error(self._logger_system.set_logger_rc_code("Invalid user role."))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Invalid user role.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return RcCode.SUCCESS
+
+        # Update the DB
+        rc = self._db.add_user_account(client_request.data["username"], client_request.data["role"], client_request.data["group_name"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not update the DB.", rc=rc))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return RcCode.SUCCESS
+
+        # Check the target handler
+        for process_id in range(0, MAX_HANDLER_PROCESS):
+            rc, message_queue = self._db.get_process_queue(process_id)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not get the message queue.", rc=rc))
+                return rc
+
+            # Send the request to the handler
+            handler_request = RequestMsg(client_request.request, None, client_socket_fd, client_request.data)
+            rc = message_queue.local_peer_send_msg(handler_request)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not send the meesage to the remote handler.", rc=rc))
+                rc_reply_msg = self._reply_client_message(
+                    client_socket_obj, client_request.request, "failed", "Can not send the meesage to remote handler.")
+                if rc_reply_msg != RcCode.SUCCESS:
+                    return rc_reply_msg
+                return rc
+            self._logger.info(self._logger_system.set_logger_rc_code("Send the request to handler{}".format(process_id)))
+
+        # Store the request sending to the handler
+        new_data = client_request.data
+        new_data["ready"] = {}
+        new_data["status"] = {}
+        for i in range(0, MAX_HANDLER_PROCESS):
+            new_data["ready"][i] = False
+            new_data["status"][i] = False
+        handler_request = RequestMsg(client_request.request, None, client_socket_fd, new_data)
+        rc = self._db.add_client_request(client_socket_fd, handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not add the client request in the DB.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not add the client request in the DB.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Process new user request successful."))
+        return RcCode.SUCCESS
+    
+    def _process_del_user_account(self, client_socket_fd, client_request, client_socket_obj):
+        # Update the DB
+        rc = self._db.del_user_account(client_request.data["username"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Delete origin request fail.", rc=rc))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return rc
+
+        # Check the target handler
+        for process_id in range(0, MAX_HANDLER_PROCESS):
+            rc, message_queue = self._db.get_process_queue(process_id)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not gert the message queue.", rc=rc))
+                return rc
+
+            # Send the request to the handler
+            handler_request = RequestMsg(client_request.request, None, client_socket_fd, client_request.data)
+            rc = message_queue.local_peer_send_msg(handler_request)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not send the meesage to the remote handler.", rc=rc))
+                reply_rc = self._reply_client_message(
+                    client_socket_obj, client_request.request, "failed", "Can not send the meesage to remote handler.")
+                if reply_rc != RcCode.SUCCESS:
+                    return reply_rc
+                return rc
+
+        # Store the request sending to the handler
+        new_data = client_request.data
+        new_data["ready"] = {}
+        new_data["status"] = {}
+        for i in range(0, MAX_HANDLER_PROCESS):
+            new_data["ready"][i] = False
+            new_data["status"][i] = False
+        handler_request = RequestMsg(client_request.request, None, client_socket_fd, new_data)
+        rc = self._db.add_client_request(client_socket_fd, handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not add the client request in the DB.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not add the client request in the DB.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Process delete reuqest request successful."))
+        return RcCode.SUCCESS
+    
+    def _process_modify_user_role(self, client_socket_fd, client_request, client_socket_obj):
+        # Check if role is valid
+        if not UserRole.is_valid(client_request.data["role"]):
+            self._logger.error(self._logger_system.set_logger_rc_code("Invalid user role."))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Invalid user role.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return RcCode.SUCCESS
+
+        rc = self._db.modify_user_account_role(client_request.data["username"], client_request.data["role"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Update the DB fail.", rc=rc))
+            rc_reply_msg = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Update the DB fail.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return RcCode.SUCCESS
+        rc = self._reply_client_message(client_socket_obj, client_request.request, "OK", client_request.data)
+        if rc != RcCode.SUCCESS:
+            return rc
+        self._logger.info(self._logger_system.set_logger_rc_code("Process new user role request successful."))
+        return RcCode.SUCCESS
+    
+    def _process_get_user_account(self, client_socket_fd, client_request, client_socket_obj):
+        self._logger.info(self._logger_system.set_logger_rc_code("Get account."))
+        username = None if client_request.data is None or "username" not in client_request.data else client_request.data["username"]
+        self._logger.info(self._logger_system.set_logger_rc_code("Get account."))
+        rc, user_account = self._db.get_user_account(username)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not get the user accounts.", rc=rc))
+            rc_reply_msg = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Can not get the user accounts.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc_reply_msg
+        rc = self._reply_client_message(client_socket_obj, client_request.request, "OK", user_account)
+        if rc != RcCode.SUCCESS:
+            return rc
+        self._logger.info(self._logger_system.set_logger_rc_code("Process new get port config request successful."))
+        return RcCode.SUCCESS
+    
+    def _process_user_join_group(self, client_socket_fd, client_request, client_socket_obj):
+        # Update the DB
+        rc = self._db.user_join_group(client_request.data["username"], client_request.data["group_name"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Delete origin request fail.", rc=rc))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return rc
+
+        # Check the target handler
+        for process_id in range(0, MAX_HANDLER_PROCESS):
+            rc, message_queue = self._db.get_process_queue(process_id)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not gert the message queue.", rc=rc))
+                return rc
+
+            # Send the request to the handler
+            handler_request = RequestMsg(client_request.request, None, client_socket_fd, client_request.data)
+            rc = message_queue.local_peer_send_msg(handler_request)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not send the meesage to the remote handler.", rc=rc))
+                reply_rc = self._reply_client_message(
+                    client_socket_obj, client_request.request, "failed", "Can not send the meesage to remote handler.")
+                if reply_rc != RcCode.SUCCESS:
+                    return reply_rc
+                return rc
+
+        # Store the request sending to the handler
+        new_data = client_request.data
+        new_data["ready"] = {}
+        new_data["status"] = {}
+        for i in range(0, MAX_HANDLER_PROCESS):
+            new_data["ready"][i] = False
+            new_data["status"][i] = False
+        handler_request = RequestMsg(client_request.request, None, client_socket_fd, new_data)
+        rc = self._db.add_client_request(client_socket_fd, handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not add the client request in the DB.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not add the client request in the DB.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Process delete reuqest request successful."))
+        return RcCode.SUCCESS
+
+    def _process_user_leave_group(self, client_socket_fd, client_request, client_socket_obj):
+        # Update the DB
+        rc = self._db.user_leave_group(client_request.data["username"], client_request.data["group_name"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Delete origin request fail.", rc=rc))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return rc
+
+        # Check the target handler
+        for process_id in range(0, MAX_HANDLER_PROCESS):
+            rc, message_queue = self._db.get_process_queue(process_id)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not gert the message queue.", rc=rc))
+                return rc
+
+            # Send the request to the handler
+            handler_request = RequestMsg(client_request.request, None, client_socket_fd, client_request.data)
+            rc = message_queue.local_peer_send_msg(handler_request)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code("Can not send the meesage to the remote handler.", rc=rc))
+                reply_rc = self._reply_client_message(
+                    client_socket_obj, client_request.request, "failed", "Can not send the meesage to remote handler.")
+                if reply_rc != RcCode.SUCCESS:
+                    return reply_rc
+                return rc
+
+        # Store the request sending to the handler
+        new_data = client_request.data
+        new_data["ready"] = {}
+        new_data["status"] = {}
+        for i in range(0, MAX_HANDLER_PROCESS):
+            new_data["ready"][i] = False
+            new_data["status"][i] = False
+        handler_request = RequestMsg(client_request.request, None, client_socket_fd, new_data)
+        rc = self._db.add_client_request(client_socket_fd, handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not add the client request in the DB.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not add the client request in the DB.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Process delete reuqest request successful."))
+        return RcCode.SUCCESS
+
+    def _process_port_join_group(self, client_socket_fd, client_request, client_socket_obj):
+        # Update the DB
+        rc = self._db.port_join_group(client_request.serial_port_id, client_request.data["group_name"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Delete origin request fail.", rc=rc))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return rc
+
+        # Check the target handler
+        process_id = (client_request.serial_port_id - 1) % 8
+        rc, message_queue = self._db.get_process_queue(process_id)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not gert the message queue.", rc=rc))
+            return rc
+
+        # Send the request to the handler
+        handler_request = RequestMsg(
+            client_request.request, client_request.serial_port_id, client_socket_fd, client_request.data)
+        rc = message_queue.local_peer_send_msg(handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not send the meesage to the remote handler.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not send the meesage to remote handler.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        # Store the request sending to the handler
+        rc = self._db.add_client_request(client_socket_fd, handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not add the client request in the DB.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not add the client request in the DB.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Process delete reuqest request successful."))
+        return RcCode.SUCCESS
+
+    def _process_port_leave_group(self, client_socket_fd, client_request, client_socket_obj):
+        # Update the DB
+        rc = self._db.port_leave_group(client_request.serial_port_id, client_request.data["group_name"])
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Delete origin request fail.", rc=rc))
+            reply_rc = self._reply_client_message(client_socket_obj, client_request.request, "failed", "Delete original request failed.")
+            if reply_rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Can not reply the message.", rc=rc))
+                return reply_rc
+            return rc
+
+        # Check the target handler
+        process_id = (client_request.serial_port_id - 1) % 8
+        rc, message_queue = self._db.get_process_queue(process_id)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not gert the message queue.", rc=rc))
+            return rc
+
+        # Send the request to the handler
+        handler_request = RequestMsg(
+            client_request.request, client_request.serial_port_id, client_socket_fd, client_request.data)
+        rc = message_queue.local_peer_send_msg(handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not send the meesage to the remote handler.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not send the meesage to remote handler.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        # Store the request sending to the handler
+        rc = self._db.add_client_request(client_socket_fd, handler_request)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not add the client request in the DB.", rc=rc))
+            rc_reply_msg = self._reply_client_message(
+                client_socket_obj, client_request.request, "failed", "Can not add the client request in the DB.")
+            if rc_reply_msg != RcCode.SUCCESS:
+                return rc_reply_msg
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Process delete reuqest request successful."))
+        return RcCode.SUCCESS
+
     def _handler_server_message(self, msg_str, client_socket_fd, client_socket_obj):
         # Resolve the replay message received from the user
         self._logger.info(self._logger_system.set_logger_rc_code("Start process the request {}".format(msg_str)))
@@ -626,21 +1261,44 @@ class ConsoleServer(multiprocessing.Process):
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code("Invalid message format.", rc=rc))
             return rc
-        
+
+        call_func = None
         # Dispatch the request
         match client_request.request:
             case ConsoleServerEvent.CONFIG_BAUD_RATE:
-                rc = self._process_config_baud_rate(client_socket_fd, client_request, client_socket_obj)
-                if rc != RcCode.SUCCESS:
-                    return rc
+                call_func = self._process_config_baud_rate
             case ConsoleServerEvent.CONFIG_ALIAS_NAME:
-                rc = self._process_config_alias_name(client_socket_fd, client_request, client_socket_obj)
-                if rc != RcCode.SUCCESS:
-                    return rc
+                call_func = self._process_config_alias_name
             case ConsoleServerEvent.GET_PORT_CONFIG:
-                rc = self._process_get_port_config(client_socket_fd, client_request, client_socket_obj)
-                if rc != RcCode.SUCCESS:
-                    return rc
+                call_func = self._process_get_port_config
+            case ConsoleServerEvent.CREATE_GROUP:
+                call_func = self._process_create_group
+            case ConsoleServerEvent.DESTROY_GROUP:
+                call_func = self._process_destroy_group
+            case ConsoleServerEvent.GET_GROUP:
+                call_func = self._process_get_group
+            case ConsoleServerEvent.ADD_USER_ACCOUNT:
+                call_func = self._process_add_user_account
+            case ConsoleServerEvent.DEL_USER_ACCOUNT:
+                call_func = self._process_del_user_account
+            case ConsoleServerEvent.GET_USER_ACCOUT:
+                call_func = self._process_get_user_account
+            case ConsoleServerEvent.MODIFY_USER_ROLE:
+                call_func = self._process_modify_user_role
+            case ConsoleServerEvent.USER_JOIN_GROUP:
+                call_func = self._process_user_join_group
+            case ConsoleServerEvent.USER_LEAVE_GROUP:
+                call_func = self._process_user_leave_group
+            case ConsoleServerEvent.PORT_JOIN_GROUP:
+                call_func = self._process_port_join_group
+            case ConsoleServerEvent.PORT_LEAVE_GROUP:
+                call_func = self._process_port_leave_group
+            case ConsoleServerEvent.INIT_HANDLER | ConsoleServerEvent.INIT_SERIAL_PORT | ConsoleServerEvent.CONNECT_SERIAL_PORT:
+                return RcCode.PERMISSION_DENIED
+        
+        rc = call_func(client_socket_fd, client_request, client_socket_obj)
+        if rc != RcCode.SUCCESS:
+            return rc
         return RcCode.SUCCESS
 
     def _close_client_socket(self, client_socket_obj):
@@ -793,4 +1451,4 @@ class ConsoleServer(multiprocessing.Process):
                 self._processing_time = end_time - start_time
             except Exception as e:
                 self._logger.error(
-                        self._logger_system.set_logger_rc_code(e, rc=rc))
+                        self._logger_system.set_logger_rc_code(e))
