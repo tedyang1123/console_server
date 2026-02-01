@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+import json
+import click
+
+from src.common.logger_system import LoggerSystem
+from src.common.msg import (GetGroupStatusRequest, GetPortConfigRequest, GetUserConfig,ReplyMsg,
+                            GetPortStatusRequest, GetGroupConfigRequest, GetUserStatus)
+from src.common.rc_code import RcCode
+from src.common.uds_lib import UnixDomainClientSocket
+from src.console_server.processing.console_server_definition import ConsoleServerEvent, VALID_BAUD_RATE, UserRole
+
+
+class RpcClient:
+    def __init__(self, server_path):
+        self._server_path = server_path
+
+    def send_command(self, data):
+        client_socket_obj = UnixDomainClientSocket(LoggerSystem("TEST_CLIENT"))
+        rc = client_socket_obj.uds_client_socket_init()
+        if rc != RcCode.SUCCESS:
+            print("Create socket fail")
+            return rc
+
+        rc = client_socket_obj.uds_client_socket_connect(self._server_path)
+        if rc != RcCode.SUCCESS:
+            print("Connect socket {} fail".format(self._server_path))
+            return rc
+
+        rc = client_socket_obj.uds_client_socket_send(data)
+        if rc != RcCode.SUCCESS:
+            print("Send data fail")
+            return rc
+
+        rc, data = client_socket_obj.uds_client_socket_recv(4)
+        if rc == RcCode.DATA_NOT_READY:
+            return RcCode.SUCCESS, None
+        if rc != RcCode.SUCCESS:
+            return rc, None
+        receive_size = int.from_bytes(data, byteorder='little')
+
+        # Receive the server reply
+        data_str = ""
+        while receive_size > 0:
+            rc, reply_str = client_socket_obj.uds_client_socket_recv(receive_size)
+            if rc == RcCode.DATA_NOT_READY:
+                continue
+            elif rc != RcCode.SUCCESS:
+                return rc, None
+            if reply_str == b"":
+                client_socket_obj.uds_client_socket_close()
+                break
+            data_str = data_str + reply_str.decode('utf-8')
+            receive_size = receive_size - len(data_str)
+
+        # Retrieve the data from request
+        reply = ReplyMsg()
+        rc = reply.deserialize(data_str)
+        if rc != RcCode.SUCCESS:
+            return rc
+        print("Request {} : Result : {}".format(reply.request, reply.result))
+        if reply.result == "OK":
+            match reply.request:
+                case ConsoleServerEvent.GET_PORT_CONFIG | ConsoleServerEvent.GET_PORT_STATUS | \
+                     ConsoleServerEvent.GET_GROUP_CONFIG | ConsoleServerEvent.GET_GROUP_STATUS | \
+                     ConsoleServerEvent.GET_USER_CONFIG | ConsoleServerEvent.GET_USER_STATUS:
+                    print("Data:\n{}\n".format(json.dumps(reply.data, indent=4, sort_keys=True)))
+        else:
+            print("Reason: {}\n".format(reply.data))
+        return RcCode.SUCCESS
+
+########################################################################################################################
+# Show command
+########################################################################################################################
+
+@click.group(name="show")
+def show():
+    """Command Line Utility For console server show command"""
+    pass
+
+
+@click.group(name="port")
+def show_port():
+    """Command Line Utility For console server show port command"""
+    pass
+
+
+@show_port.command('config', short_help='This command is for users to show the serial port configuration.')
+@click.argument('exec_user', required=True)
+@click.argument('serial_port_id', type=click.IntRange(1, 24), required=False)
+def get_port_config(exec_user, serial_port_id):
+    request = GetPortConfigRequest(exec_user, serial_port_id)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("{}".format(RcCode.covert_rc_to_string(rc)))
+
+
+@show_port.command('status', short_help='This command is for users to show the serial port status.')
+@click.argument('exec_user', required=True)
+@click.argument('serial_port_id', type=click.IntRange(1, 24), required=False)
+def get_port_status(exec_user, serial_port_id):
+    request = GetPortStatusRequest(exec_user, serial_port_id)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("{}".format(RcCode.covert_rc_to_string(rc)))
+
+
+show.add_command(show_port, name="port")
+
+
+@click.group(name="group")
+def show_group():
+    """Command Line Utility For console server show group command"""
+    pass
+
+
+@show_group.command('config', short_help='This command is for users to show the group configuration.')
+@click.argument('exec_user', required=True)
+@click.argument('group_name', required=False)
+def get_port_config(exec_user, group_name):
+    request = GetGroupConfigRequest(exec_user, group_name)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("{}".format(RcCode.covert_rc_to_string(rc)))
+
+
+@show_group.command('status', short_help='This command is for users to show the group status.')
+@click.argument('exec_user', required=True)
+@click.argument('group_name', required=False)
+def get_port_status(exec_user, group_name):
+    request = GetGroupStatusRequest(exec_user, group_name)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("{}".format(RcCode.covert_rc_to_string(rc)))
+
+
+show.add_command(show_group, name="group")
+
+
+@click.group(name="user")
+def show_user():
+    """Command Line Utility For console server show user command"""
+    pass
+
+
+@show_user.command('config', short_help='This command is for users to show the user configuration.')
+@click.argument('exec_user', required=True)
+@click.argument('username', required=False)
+def show_user_config(exec_user, username):
+    request = GetUserConfig(exec_user, username)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("{}".format(RcCode.covert_rc_to_string(rc)))
+
+
+@show_user.command('status', short_help='This command is for users to show the user status.')
+@click.argument('exec_user', required=True)
+@click.argument('username', required=False)
+def show_user_status(exec_user, username):
+    request = GetUserStatus(exec_user, username)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("{}".format(RcCode.covert_rc_to_string(rc)))
+
+
+show.add_command(show_user, name="user")
+
+if __name__ == "__main__":
+    show()

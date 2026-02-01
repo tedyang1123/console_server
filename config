@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+import json
+import click
+
+from src.common.logger_system import LoggerSystem
+from src.common.msg import (AddUserAccountRequest, SetAliasNameRequest, SetBaudRateRequest,
+                            ConnectSerialPortRequest, CreateGroupRequest, DelUserAccountRequest, DestroyGroupRequest,
+                            ModifyUserRole, PortJoinGroupRequest, PortLeaveGroupRequest, ReplyMsg, UserJoinGroupRequest,
+                            UserLeaveGroupRequest, GetPortStatusRequest, GetGroupConfigRequest, GetUserStatus)
+from src.common.rc_code import RcCode
+from src.common.uds_lib import UnixDomainClientSocket
+from src.console_server.processing.console_server_definition import ConsoleServerEvent, VALID_BAUD_RATE, UserRole
+
+
+class RpcClient:
+    def __init__(self, server_path):
+        self._server_path = server_path
+
+    def send_command(self, data):
+        client_socket_obj = UnixDomainClientSocket(LoggerSystem("TEST_CLIENT"))
+        rc = client_socket_obj.uds_client_socket_init()
+        if rc != RcCode.SUCCESS:
+            print("Create socket fail")
+            return rc
+        
+        rc = client_socket_obj.uds_client_socket_connect(self._server_path)
+        if rc != RcCode.SUCCESS:
+            print("Connect socket {} fail".format(self._server_path))
+            return rc
+        
+        rc = client_socket_obj.uds_client_socket_send(data)
+        if rc != RcCode.SUCCESS:
+            print("Send data fail")
+            return rc
+        
+        rc, data = client_socket_obj.uds_client_socket_recv(4)
+        if rc == RcCode.DATA_NOT_READY:
+            return RcCode.SUCCESS, None
+        if rc != RcCode.SUCCESS:
+            return rc, None
+        receive_size = int.from_bytes(data, byteorder='little')
+
+        # Receive the server reply
+        data_str = ""
+        while receive_size > 0:
+            rc, reply_str = client_socket_obj.uds_client_socket_recv(receive_size)
+            if rc == RcCode.DATA_NOT_READY:
+                continue
+            elif rc != RcCode.SUCCESS:
+                return rc, None
+            if reply_str == b"":
+                client_socket_obj.uds_client_socket_close()
+                break
+            data_str = data_str + reply_str.decode('utf-8')
+            receive_size = receive_size - len(data_str)
+
+        # Retrieve the data from request
+        reply = ReplyMsg()
+        rc = reply.deserialize(data_str)
+        if rc != RcCode.SUCCESS:
+            return rc
+        print("Request {} : Result : {}".format(reply.request, reply.result))
+        if reply.result == "OK":
+            match reply.request:
+                case ConsoleServerEvent.GET_PORT_CONFIG | ConsoleServerEvent.GET_PORT_STATUS | \
+                     ConsoleServerEvent.GET_GROUP_CONFIG | ConsoleServerEvent.GET_GROUP_STATUS | \
+                     ConsoleServerEvent.GET_USER_CONFIG | ConsoleServerEvent.GET_USER_STATUS:
+                    print("Data:\n{}\n".format(json.dumps(reply.data, indent=4, sort_keys=True)))
+        else:
+            print("Reason: {}\n".format(reply.data))
+        return RcCode.SUCCESS
+
+########################################################################################################################
+# Config command
+########################################################################################################################
+
+@click.group(name="config")
+def config():
+    """Command Line Utility For console server config command"""
+    pass
+
+@click.group(name="port")
+def config_port():
+    """Command Line Utility For console server config port command"""
+    pass
+
+@config_port.command('alias-name', short_help='This command is for users to set the alias name for the serial prot.')
+@click.argument('exec_user', required=True)
+@click.argument('serial_port_id', type=click.IntRange(1, 24), required=True)
+@click.argument('alias_name', required=True)
+def config_port_alias_name(exec_user, serial_port_id, alias_name):
+    request = SetAliasNameRequest(exec_user, serial_port_id, alias_name)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+@config_port.command('baud-rate', short_help='This command is for users to set the baud rate for the serial prot.')
+@click.argument('exec_user', required=True)
+@click.argument('serial_port_id', type=click.IntRange(1, 24), required=True)
+@click.argument('baud_rate', type=click.Choice(VALID_BAUD_RATE), required=True)
+def config_port_baud_rate(exec_user, serial_port_id, baud_rate):
+    request = SetBaudRateRequest(exec_user, serial_port_id, baud_rate)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+@config_port.command('join', short_help='This command is for serial prot to join the group.')
+@click.argument('exec_user', required=True)
+@click.argument('serial_port_id', type=click.IntRange(1, 24), required=True)
+@click.argument('group_name', required=True)
+def config_port_join(exec_user, serial_port_id, group_name):
+    request = PortJoinGroupRequest(exec_user, serial_port_id, group_name)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+@config_port.command('leave', short_help='This command is for serial prot to leave the group.')
+@click.argument('exec_user', required=True)
+@click.argument('serial_port_id', type=click.IntRange(1, 24), required=True)
+@click.argument('group_name', required=True)
+def config_port_leave(exec_user, serial_port_id, group_name):
+    request = PortLeaveGroupRequest(exec_user, serial_port_id, group_name)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+@config_port.command('connect', short_help='This command is to connect the serial port.')
+@click.argument('exec_user', required=True)
+@click.argument('serial_port_id', type=click.IntRange(1, 24), required=True)
+def config_user_delete(exec_user, serial_port_id):
+    request = ConnectSerialPortRequest(exec_user, serial_port_id)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+config.add_command(config_port, name="port")
+
+@click.group(name="group")
+def config_group():
+    """Command Line Utility For console server config group command"""
+    pass
+
+@config_group.command('create', short_help='This command is for users to create the group.')
+@click.argument('exec_user', required=True)
+@click.argument('group_name', required=True)
+@click.argument('role', type=click.Choice(UserRole.get_list()), required=True)
+def config_group_create(exec_user, group_name, role):
+    request = CreateGroupRequest(exec_user, group_name, role)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+@config_group.command('destroy', short_help='This command is for users to destroy the group.')
+@click.argument('exec_user', required=True)
+@click.argument('group_name', required=True)
+def config_group_destroy(exec_user, group_name):
+    request = DestroyGroupRequest(exec_user, group_name)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+config.add_command(config_group, name="group")
+
+@click.group(name="user")
+def config_user():
+    """Command Line Utility For console server config user command"""
+    pass
+
+@config_user.command('add', short_help='This command is to add the user.')
+@click.argument('exec_user', required=True)
+@click.argument('username', required=True)
+@click.argument('group_name', required=True)
+@click.argument('role', type=click.Choice(UserRole.get_list()), required=True)
+def config_user_add(exec_user, username, group_name, role):
+    request = AddUserAccountRequest(exec_user, username, group_name, role)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+@config_user.command('delete', short_help='This command is to delete the user.')
+@click.argument('exec_user', required=True)
+@click.argument('username', required=True)
+def config_user_delete(exec_user, username):
+    request = DelUserAccountRequest(exec_user, username)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+@config_user.command('modify', short_help='This command is to modify the user role.')
+@click.argument('exec_user', required=True)
+@click.argument('username', required=True)
+@click.argument('role', type=click.Choice(UserRole.get_list()), required=False)
+def config_user_modify(exec_user, username, role):
+    request = ModifyUserRole(exec_user, username, role)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+@config_user.command('join', short_help='This command is for user to join the group.')
+@click.argument('exec_user', required=True)
+@click.argument('username', required=True)
+@click.argument('group_name', required=True)
+def config_user_join(exec_user, username, group_name):
+    request = UserJoinGroupRequest(exec_user, username, group_name)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+@config_user.command('leave', short_help='This command is for user to leave the group.')
+@click.argument('exec_user', required=True)
+@click.argument('username', required=True)
+@click.argument('group_name', required=True)
+def config_user_leave(exec_user, username, group_name):
+    request = UserLeaveGroupRequest(exec_user, username, group_name)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
+config.add_command(config_user, name="user")
+
+if __name__ == "__main__":
+    config()

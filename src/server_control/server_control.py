@@ -1,7 +1,7 @@
 import os
 import time
 
-from src.common.msg import ConfigAliasNameRequest, ConfigBaudRateRequest, ConnectSerialPortRequest, GetPortConfigRequest, ReplyMsg, RequestMsg
+from src.common.msg import SetAliasNameRequest, SetBaudRateRequest, ConnectSerialPortRequest, GetPortConfigRequest, ReplyMsg, RequestMsg
 from src.common.rc_code import RcCode
 from src.common.uds_lib import UnixDomainClientSocket
 from src.console_server.processing.console_server_definition import ConsoleServerEvent
@@ -327,7 +327,7 @@ class ServerControlPortAccessMode(ServerControlMode):
             return rc
 
         # Receive the server reply
-        rc, port_config_dict = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.GET_PORT_CONFIG)
+        rc, port_config_dict = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.GET_PORT_STATUS)
         if rc != RcCode.SUCCESS:
             return rc
 
@@ -587,7 +587,7 @@ class ServerControlPortConfigMode(ServerControlMode):
             if self._select_item_id in ["a", "A"]:
                 self._logger.info("Get valid alisa name {}".format(process_data))
                 rc = self._send_uds_socket_request_data(
-                    self._uds_mgmt_socket, ConfigAliasNameRequest(self._serial_port_id, process_data))
+                    self._uds_mgmt_socket, SetAliasNameRequest(self._serial_port_id, process_data))
                 if rc != RcCode.SUCCESS:
                     self._refresh_screen_menu()
                     self._config_step = self.CONFIG_SELECT_ITEM
@@ -596,7 +596,7 @@ class ServerControlPortConfigMode(ServerControlMode):
                     self._baud_rate = -1
                     return rc
 
-                rc, _ = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.CONFIG_ALIAS_NAME)
+                rc, _ = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.SET_ALIAS_NAME)
                 if rc != RcCode.SUCCESS:
                     self._refresh_screen_menu()
                     self._config_step = self.CONFIG_SELECT_ITEM
@@ -608,7 +608,7 @@ class ServerControlPortConfigMode(ServerControlMode):
                 try:
                     baud_rate = int(process_data)
                     rc = self._send_uds_socket_request_data(
-                        self._uds_mgmt_socket, ConfigBaudRateRequest(self._serial_port_id, baud_rate))
+                        self._uds_mgmt_socket, SetBaudRateRequest(self._serial_port_id, baud_rate))
                     if rc != RcCode.SUCCESS:
                         self._refresh_screen_menu()
                         self._config_step = self.CONFIG_SELECT_ITEM
@@ -618,7 +618,7 @@ class ServerControlPortConfigMode(ServerControlMode):
                         self._logger.info("Send the request failed..")
                         return rc
 
-                    rc, reply = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.CONFIG_BAUD_RATE)
+                    rc, reply = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.SET_BAUD_RATE)
                     if rc != RcCode.SUCCESS:
                         self._logger.info("Receive the request failed..")
                         self._config_step = self.CONFIG_SELECT_ITEM
@@ -640,7 +640,7 @@ class ServerControlPortConfigMode(ServerControlMode):
             return rc
 
         # Receive the server reply
-        rc, port_config_dict = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.GET_PORT_CONFIG)
+        rc, port_config_dict = self._receive_uds_socket_reply_data(self._uds_mgmt_socket, ConsoleServerEvent.GET_PORT_STATUS)
         if rc != RcCode.SUCCESS:
             return rc
 

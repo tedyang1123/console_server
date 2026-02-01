@@ -2,7 +2,7 @@ import multiprocessing
 import select
 
 from src.common.logger_system import LoggerSystem
-from src.common.msg import ReplyMsg, RequestMsg, msg_serialize
+from src.common.msg import ReplyMsg, RequestMsg, msg_serialize, check_all_required_parameter
 from src.common.rc_code import RcCode
 from src.common.uds_lib import UnixDomainConnectedClientSocket, UnixDomainServerSocket
 from src.common.utiliity import TEST_MODE
@@ -37,7 +37,9 @@ class _ConsolerServerHandlerDb:
         del self._serial_port_info_dict[serial_port_id]
         return RcCode.SUCCESS
     
-    def get_serial_port(self, serial_port_id):
+    def get_serial_port(self, serial_port_id=None):
+        if serial_port_id is None:
+            return RcCode.SUCCESS, self._serial_port_info_dict
         if serial_port_id not in self._serial_port_info_dict:
             return RcCode.DATA_NOT_FOUND, None
         return RcCode.SUCCESS, self._serial_port_info_dict[serial_port_id]
@@ -134,10 +136,10 @@ class _ConsolerServerHandlerDb:
     
     def get_user_port_group(self, group_id=None):
         if group_id is None:
-            return RcCode.SUCCESS, self._port_group_dict
-        if group_id not in self._port_group_dict:
+            return RcCode.SUCCESS, self._group_dict
+        if group_id not in self._group_dict:
             return RcCode.DATA_NOT_FOUND, None
-        return RcCode.SUCCESS, self._port_group_dict[group_id]
+        return RcCode.SUCCESS, self._group_dict[group_id]
     
     def add_user_account(self, username, group_name):
         if username in self._user_dict:
@@ -249,8 +251,8 @@ class ConsolerServerHandler(multiprocessing.Process):
             return rc
         return RcCode.SUCCESS
     
-    def _send_queue_message(self, request=None, serial_port_id=None, socket_fd=None,  data=None, result=None):
-        rc = self._tx_queue_func(ReplyMsg(request, serial_port_id, socket_fd, data, result))
+    def _send_queue_message(self, request=None, serial_port_id=None, socket_fd=None, exec_user=None, data=None, result=None):
+        rc = self._tx_queue_func(ReplyMsg(request, serial_port_id, socket_fd, exec_user, data, result))
         if rc != RcCode.SUCCESS:
             self._logger.error(
                 self._logger_system.set_logger_rc_code("Can not send the request to console server", rc=rc))
@@ -297,15 +299,17 @@ class ConsolerServerHandler(multiprocessing.Process):
             return rc
         self._logger.info(self._logger_system.set_logger_rc_code("Notify the server that handler initialize completely."))
 
-        self._logger.info(self._logger_system.set_logger_rc_code("Init consoel server handler complete."))
+        self._logger.info(self._logger_system.set_logger_rc_code("Init console server handler complete."))
         return RcCode.SUCCESS
     
     ##########################################################################################################
     # Process Queue Data Relate API
     ##########################################################################################################
-    
-    def _reply_queue_message(self, request, serial_port_id, socket_fd, data, result):
-        reply_msg = ReplyMsg(request, serial_port_id, socket_fd, data, result)
+
+    def _reply_queue_message(self, client_request, data, result):
+        reply_msg = ReplyMsg(
+            client_request.request, client_request.serial_port_id, client_request.socket_fd, client_request.exec_user,
+            data, result)
         rc = self._tx_queue_func(reply_msg)
         if rc != RcCode.SUCCESS:
             self._logger.error(
@@ -335,277 +339,321 @@ class ConsolerServerHandler(multiprocessing.Process):
                     "Can not add the serial port object to DB.", rc=rc))
             return rc
         return RcCode.SUCCESS
-    
+
     def _process_init_serial_port_event(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Initialize the serial port"))
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["serial_port_config"], required_exec_user=False):
+            return self._reply_queue_message(msg_dict, "Missing the required parameters.", "Failed")
+
         serial_port_config = msg_dict.data["serial_port_config"]
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Initialize the serial port {} ".format(serial_port_config)))
 
         # Init the serial port
         for serial_port_id in serial_port_config:
             rc = self._init_serial_port_object(serial_port_id, serial_port_config)
             if rc != RcCode.SUCCESS:
-                self._logger.error(
-                    self._logger_system.set_logger_rc_code("Initial the serial port {} failed.".format(serial_port_id), rc=rc))
-                rc = self._reply_queue_message(
-                    msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, 
-                    "Can not initialize the serial port {}.".format(serial_port_id), "Failed")
-                if rc != RcCode.SUCCESS:
-                    return rc
+                self._logger.error(self._logger_system.set_logger_rc_code(
+                    "Initial the serial port {} failed.".format(serial_port_id), rc=rc))
+                return self._reply_queue_message(msg_dict, "Can not initialize the serial port {}.".format(serial_port_id), "Failed")
             self._logger.info(
                 self._logger_system.set_logger_rc_code("Initialize the serial port {} successful.".format(serial_port_id)))
 
-        # Notify the console server that serial ports init completely
-        rc = self._reply_queue_message(msg_dict.request, -1, -1, None, "OK")
+        # Notify the console server that serial port initialization is complete.
+        self._logger.info(self._logger_system.set_logger_rc_code(
+            "Notify the server that serial port has initialized completely."))
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
+
+    def _process_init_default_account_event(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Initialize the default user account"))
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["username", "group_name", "role"], required_exec_user=False):
+            return self._reply_queue_message(msg_dict, "Missing the required parameters.", "Failed")
+
+        username = msg_dict.data["username"]
+        group_name = msg_dict.data["group_name"]
+        role = msg_dict.data["role"]
+
+        # Create the group in the DB
+        rc = self._db.create_group(group_name, role)
         if rc != RcCode.SUCCESS:
-            self._logger.error(
-                self._logger_system.set_logger_rc_code(
-                    "Can not notify the console server about the request {}.".format(msg_dict.request), rc=rc))
-            return rc
-        self._logger.info(self._logger_system.set_logger_rc_code("Notify the server that serial prot has initialized complete."))
-        return RcCode.SUCCESS
-    
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Can not add the group {} to DB".format(group_name), rc=rc))
+            return self._reply_queue_message(msg_dict, "Can not add the group {} to DB".format(group_name),
+                                                 "Failed")
+
+        # Create the user in the DB
+        rc = self._db.add_user_account(username, group_name)
+        if rc != RcCode.SUCCESS:
+            return self._reply_queue_message(msg_dict, "Can not add the user in the DB.", "failed")
+
+        # Notify the console server that serial port initialization is complete.
+        self._logger.info(self._logger_system.set_logger_rc_code(
+            "Notify the server that default user initialized completely."))
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
+
     def _process_config_baud_rate(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process baud rate request"))
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["baud_rate"], required_serial_port_id=True):
+            return self._reply_queue_message(msg_dict, "Missing the required parameters.", "Failed")
+
         serial_port_id = msg_dict.serial_port_id
         baud_rate = msg_dict.data["baud_rate"]
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Process baud rate request for serial port {} ".format(serial_port_id)))
 
-        # Add the serial por to DB
+        # Add the serial port to DB
         rc, serial_port_dict = self._db.get_serial_port(serial_port_id)
         if rc != RcCode.SUCCESS:
-            self._logger.error(
-                self._logger_system.set_logger_rc_code("Get the serial port {} from the DB fail".format(serial_port_id), rc=rc))
-            rc = self._reply_queue_message(
-                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not get the serial port object the DB.", "Failed")
-            if rc != RcCode.SUCCESS:
-                return rc
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Get the serial port {} from the DB fail".format(serial_port_id), rc=rc))
+            return self._reply_queue_message(msg_dict, "Can not get the serial port object the DB.", "Failed")
 
         serial_port_obj = serial_port_dict["serial_port_obj"]
 
         # Configure the baud rate and restart the serial port
         rc = serial_port_obj.set_com_port_baud_rate(baud_rate)
         if rc != RcCode.SUCCESS:
-            self._logger.error(
-                self._logger_system.set_logger_rc_code("Set the baud rate top the serial port {} fail".format(serial_port_id), rc=rc))
-            rc = self._reply_queue_message(
-                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not get the serial port object the DB.", "Failed")
-            if rc != RcCode.SUCCESS:
-                return rc
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Set the baud rate top the serial port {} fail".format(serial_port_id), rc=rc))
+            return self._reply_queue_message(msg_dict, "Can not get the serial port object the DB.", "Failed")
+
+        self._logger.info(self._logger_system.set_logger_rc_code(
+            "Set the new baud rate to the serial port {} successful.".format(serial_port_id)))
 
         # Notify the console server that serial has configured the new baud rate
-        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
-        if rc != RcCode.SUCCESS:
-            return rc
-
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Set the new baud rate to the serial port {} successful.".format(serial_port_id)))
-        return RcCode.SUCCESS
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
     
     def _process_add_user_account(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process add username request"))
+
+        # Set the reply process ID
+        msg_dict.data["process_id"] = self._process_id
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["username", "group_name"]):
+            msg_dict.data["error_msg"] = "Missing the required parameters."
+            return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
+
         username = msg_dict.data["username"]
         group_name = msg_dict.data["group_name"]
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Process add username {} request".format(username)))
 
         rc = self._db.add_user_account(username, group_name)
         if rc != RcCode.SUCCESS:
-            rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "failed")
-            if rc != RcCode.SUCCESS:
-                return rc
+            return self._reply_queue_message(msg_dict, "Can not add the user in the DB.", "failed")
 
-        # Notify the console server that serial has configured the new baud rate
-        msg_dict.data["process_id"] = self._process_id
-        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
-        if rc != RcCode.SUCCESS:
-            return rc
-        
-        self._logger.info(self._logger_system.set_logger_rc_code("process the request to handler{}".format(msg_dict.data["process_id"])))
+        self._logger.info(self._logger_system.set_logger_rc_code(
+            "Add the user {} and the group {} successful.".format(username, group_name)))
 
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Add the user {} and the group {} successful.".format(username, group_name)))
-        return RcCode.SUCCESS
+        # Notify the console server that the user has been created
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
     
     def _process_del_user_account(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process delete username request"))
+
+        # Set the reply process ID
+        msg_dict.data["process_id"] = self._process_id
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["username"]):
+            msg_dict.data["error_msg"] = "Missing the required parameters."
+            return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
+
         username = msg_dict.data["username"]
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Process delete username {} request".format(username)))
 
         # Delete the username to DB
         rc = self._db.del_user_account(username)
         if rc != RcCode.SUCCESS:
-            self._logger.error(self._logger_system.set_logger_rc_code("Can not add the username {} to DB".format(username), rc=rc))
-            reply_rc = self._reply_queue_message(
-                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not add the username {} to DB".format(username), "Failed")
-            if reply_rc != RcCode.SUCCESS:
-                return reply_rc
-            return RcCode.SUCCESS
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Can not add the username {} to DB".format(username), rc=rc))
+            return self._reply_queue_message(msg_dict, "Can not add the username {} to DB".format(username), "Failed")
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Delete the user {} successful.".format(username)))
 
         # Notify the console server that serial has configured the new baud rate
-        msg_dict.data["process_id"] = self._process_id
-        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
-        if rc != RcCode.SUCCESS:
-            return rc
-
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Delete the user {} successful.".format(username)))
-        return RcCode.SUCCESS
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
     
     def _process_add_group(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process add group request {}".format(msg_dict.data)))
+
+        # Set the reply process ID
+        msg_dict.data["process_id"] = self._process_id
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["group_name", "role"]):
+            msg_dict.data["error_msg"] = "Missing the required parameters."
+            return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
+
         group_name = msg_dict.data["group_name"]
         role = msg_dict.data["role"]
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Process add group {} request".format(group_name)))
 
-        # Delete the username to DB
+        # Create the group in the DB
         rc = self._db.create_group(group_name, role)
         if rc != RcCode.SUCCESS:
-            self._logger.error(self._logger_system.set_logger_rc_code("Can not add the username {} to DB".format(username), rc=rc))
-            reply_rc = self._reply_queue_message(
-                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not add the username {} to DB".format(username), "Failed")
-            if reply_rc != RcCode.SUCCESS:
-                return reply_rc
-            return RcCode.SUCCESS
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Can not add the group {} to DB".format(group_name), rc=rc))
+            return self._reply_queue_message(msg_dict, "Can not add the group {} to DB".format(group_name), "Failed")
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Add the group {} successful.".format(group_name)))
 
         # Notify the console server that serial has configured the new baud rate
-        msg_dict.data["process_id"] = self._process_id
-        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
-        if rc != RcCode.SUCCESS:
-            return rc
-
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Delete the user {} successful.".format(group_name)))
-        return RcCode.SUCCESS
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
 
     def _process_del_group(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process delete group request"))
+
+        # Set the reply process ID
+        msg_dict.data["process_id"] = self._process_id
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["group_name"]):
+            msg_dict.data["error_msg"] = "Missing the required parameters."
+            return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
+
         group_name = msg_dict.data["group_name"]
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Process delete group {} request".format(group_name)))
-        
-        # TBD: Check if the user has delete from the group
+
+        # Check if the user has been deleted from the group
+        rc, user_dict = self._db.get_user_account()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Can not get the users in the DB.", rc=rc))
+            msg_dict.data["error_msg"] = "Can not get the users in the DB."
+            return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
+        for username in user_dict:
+            if group_name in user_dict[username]["group_list"]:
+                self._logger.error(self._logger_system.set_logger_rc_code(
+                    "The group still has the user.", rc=rc))
+                msg_dict.data["error_msg"] = "The group still has the user."
+                return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
+
+        rc, port_list = self._db.get_serial_port()
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Can not get the serial ports in the DB.", rc=rc))
+            msg_dict.data["error_msg"] = "Can not get the serial ports in the DB."
+            return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
+        for serial_port_id in port_list:
+            if group_name in port_list[serial_port_id]["group_list"]:
+                self._logger.error(self._logger_system.set_logger_rc_code(
+                    "The group still has the serial port.", rc=rc))
+                msg_dict.data["error_msg"] = "The group still has the serial port."
+                return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
 
         # Delete the username to DB
         rc = self._db.destroy_group(group_name)
         if rc != RcCode.SUCCESS:
-            self._logger.error(self._logger_system.set_logger_rc_code("Can not delete the group {} from DB".format(group_name), rc=rc))
-            reply_rc = self._reply_queue_message(
-                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not delete the group {} from DB".format(group_name), "Failed")
-            if reply_rc != RcCode.SUCCESS:
-                return reply_rc
-            return RcCode.SUCCESS
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Can not delete the group {} from DB".format(group_name), rc=rc))
+            return self._reply_queue_message(msg_dict, "Can not delete the group {} from DB".format(group_name), "Failed")
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Delete the group {} successful.".format(group_name)))
 
         # Notify the console server that serial has configured the new baud rate
-        msg_dict.data["process_id"] = self._process_id
-        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
-        if rc != RcCode.SUCCESS:
-            return rc
-
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Delete the user {} successful.".format(group_name)))
-        return RcCode.SUCCESS
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
 
     def _process_user_join_group(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process user join group request"))
+
+        # Set the reply process ID
+        msg_dict.data["process_id"] = self._process_id
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["group_name", "username"]):
+            msg_dict.data["error_msg"] = "Missing the required parameters."
+            return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
+
         group_name = msg_dict.data["group_name"]
         username = msg_dict.data["username"]
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Process user {} join group {} request".format(username, group_name)))
 
         # Delete the username to DB
         rc = self._db.user_join_group(username, group_name)
         if rc != RcCode.SUCCESS:
-            self._logger.error(self._logger_system.set_logger_rc_code("Can not add the username {} to DB".format(username), rc=rc))
-            reply_rc = self._reply_queue_message(
-                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not add the username {} to DB".format(username), "Failed")
-            if reply_rc != RcCode.SUCCESS:
-                return reply_rc
-            return RcCode.SUCCESS
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "User {} can not join the group {}".format(username, group_name), rc=rc))
+            return self._reply_queue_message(msg_dict, "User {} can not join the group {}".format(username, group_name), "Failed")
+
+        self._logger.info(self._logger_system.set_logger_rc_code(
+            "User {} join group {} successful.".format(username, group_name)))
 
         # Notify the console server that serial has configured the new baud rate
-        msg_dict.data["process_id"] = self._process_id
-        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
-        if rc != RcCode.SUCCESS:
-            return rc
-
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("User {} join group {} successful.".format(username, group_name)))
-        return RcCode.SUCCESS
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
 
     def _process_user_leave_group(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process user leave group request"))
+
+        # Set the reply process ID
+        msg_dict.data["process_id"] = self._process_id
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["group_name", "username"]):
+            msg_dict.data["error_msg"] = "Missing the required parameters."
+            return self._reply_queue_message(msg_dict, msg_dict.data, "Failed")
+
         group_name = msg_dict.data["group_name"]
         username = msg_dict.data["username"]
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Process user {} leave group {} request".format(username, group_name)))
 
         # Delete the username to DB
         rc = self._db.user_leave_group(username, group_name)
         if rc != RcCode.SUCCESS:
-            self._logger.error(self._logger_system.set_logger_rc_code("Can not add the username {} to DB".format(username), rc=rc))
-            reply_rc = self._reply_queue_message(
-                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not add the username {} to DB".format(username), "Failed")
-            if reply_rc != RcCode.SUCCESS:
-                return reply_rc
-            return RcCode.SUCCESS
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "User {} can not leave the group {}".format(username, group_name), rc=rc))
+            return self._reply_queue_message(msg_dict, "User {} can not leave the group {}".format(username, group_name), "Failed")
+
+        self._logger.info(self._logger_system.set_logger_rc_code(
+            "User {} leave group {} successful.".format(username, group_name)))
 
         # Notify the console server that serial has configured the new baud rate
-        msg_dict.data["process_id"] = self._process_id
-        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
-        if rc != RcCode.SUCCESS:
-            return rc
-
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("User {} leave group {} successful.".format(username, group_name)))
-        return RcCode.SUCCESS
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
 
     def _process_port_join_group(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process port join group request"))
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["group_name"], required_serial_port_id=True):
+            return self._reply_queue_message(msg_dict, "Missing the required parameters.", "Failed")
+
         group_name = msg_dict.data["group_name"]
         serial_port_id = msg_dict.serial_port_id
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Process port {} join group {} request".format(serial_port_id, group_name)))
 
         # Delete the username to DB
         rc = self._db.port_join_group(serial_port_id, group_name)
         if rc != RcCode.SUCCESS:
-            self._logger.error(self._logger_system.set_logger_rc_code("Can not join the serial port {} to the group in the DB".format(serial_port_id), rc=rc))
-            reply_rc = self._reply_queue_message(
-                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not join the serial port to the group in the DB".format(serial_port_id), "Failed")
-            if reply_rc != RcCode.SUCCESS:
-                return reply_rc
-            return RcCode.SUCCESS
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Port {} can not join the group {}".format(serial_port_id, group_name), rc=rc))
+            return self._reply_queue_message(msg_dict, "Port {} can not join the group {}".format(serial_port_id, group_name), "Failed")
+
+        self._logger.info(self._logger_system.set_logger_rc_code(
+            "Port {} join group the group {} successful.".format(serial_port_id, group_name)))
 
         # Notify the console server that serial has configured the new baud rate
-        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
-        if rc != RcCode.SUCCESS:
-            return rc
-
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Port {} join group {} successful.".format(serial_port_id, group_name)))
-        return RcCode.SUCCESS
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
 
     def _process_port_leave_group(self, msg_dict):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process port leave group request"))
+
+        # Set the reply process ID
+        msg_dict.data["process_id"] = self._process_id
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(msg_dict, ["group_name"], required_serial_port_id=True):
+            return self._reply_queue_message(msg_dict, "Missing the required parameters.", "Failed")
+
         group_name = msg_dict.data["group_name"]
         serial_port_id = msg_dict.serial_port_id
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Process port {} leave group {} request".format(serial_port_id, group_name)))
 
         # Delete the username to DB
         rc = self._db.port_join_group(serial_port_id, group_name)
         if rc != RcCode.SUCCESS:
-            self._logger.error(self._logger_system.set_logger_rc_code("Can not remove the serial port {} to the group in the DB".format(serial_port_id), rc=rc))
-            reply_rc = self._reply_queue_message(
-                msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Can not remove the serial port to the group in the DB".format(serial_port_id), "Failed")
-            if reply_rc != RcCode.SUCCESS:
-                return reply_rc
-            return RcCode.SUCCESS
+            self._logger.error(self._logger_system.set_logger_rc_code(
+                "Port {} can not leave the group {}".format(serial_port_id, group_name), rc=rc))
+            return self._reply_queue_message(msg_dict, "Port {} can not leave the group {}".format(serial_port_id, group_name), "Failed")
+
+        self._logger.info(self._logger_system.set_logger_rc_code(
+            "Port {} leave group {} successful.".format(serial_port_id, group_name)))
 
         # Notify the console server that serial has configured the new baud rate
-        msg_dict.data["process_id"] = self._process_id
-        rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, msg_dict.data, "OK")
-        if rc != RcCode.SUCCESS:
-            return rc
-
-        self._logger.info(
-            self._logger_system.set_logger_rc_code("Port {} leave group {} successful.".format(serial_port_id, group_name)))
-        return RcCode.SUCCESS
+        return self._reply_queue_message(msg_dict, msg_dict.data, "OK")
     
     def process_message_queue_data(self):
         rc, msg_dict = self._rx_queue_func()
@@ -615,12 +663,13 @@ class ConsolerServerHandler(multiprocessing.Process):
         elif rc != RcCode.SUCCESS:
             return rc
 
-        call_func = None
         # Process the request
         match msg_dict.request:
             case ConsoleServerEvent.INIT_SERIAL_PORT:
                 call_func = self._process_init_serial_port_event
-            case ConsoleServerEvent.CONFIG_BAUD_RATE:
+            case ConsoleServerEvent.INIT_DEFAULT_ACCOUNT:
+                call_func = self._process_init_default_account_event
+            case ConsoleServerEvent.SET_BAUD_RATE:
                 call_func = self._process_config_baud_rate
             case ConsoleServerEvent.CREATE_GROUP:
                 call_func = self._process_add_group
@@ -640,7 +689,7 @@ class ConsolerServerHandler(multiprocessing.Process):
                 call_func = self._process_port_leave_group
             case _:
                 # Notify the console server that the request is invalid
-                rc = self._reply_queue_message(msg_dict.request, msg_dict.serial_port_id, msg_dict.socket_fd, "Invalid the request", "failed")
+                rc = self._reply_queue_message(msg_dict, "Invalid the request", "failed")
                 if rc != RcCode.SUCCESS:
                     return rc
                 return rc
