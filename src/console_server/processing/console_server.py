@@ -15,6 +15,11 @@ from src.console_server.processing.console_server_handler import ConsolerServerH
 MAX_HANDLER_PROCESS =  8
 
 
+DEFAULT_USER_ACCOUNT = "admin"
+DEFAULT_GROUP_NAME = "admin"
+DEFAULT_ROLE = UserRole.ROLE_ADMIN
+
+
 class _ConsoleServerOpDb:
     def __init__(self):
         self._client_socket_dict = {}
@@ -623,7 +628,7 @@ class ConsoleServer(multiprocessing.Process):
 
             # Add the serial port in the group of the operation DB
             rc = self._op_db.join_serial_port_group(
-                serial_port_id, (serial_port_id - 1) % 8, {"baud_rate": 115200, "dev_tty_id": 1})
+                serial_port_id, (serial_port_id - 1) % 8, {"baud_rate": 115200, "dev_tty_id": serial_port_id - 1})
             if rc != RcCode.SUCCESS:
                 self._logger.error(self._logger_system.set_logger_rc_code(
                     "Failed to join the port in the port group.", rc=rc))
@@ -698,14 +703,14 @@ class ConsoleServer(multiprocessing.Process):
 
     def _init_handle_admin_user(self):
         # Update the DB
-        rc = self._config_db.create_group("admin", "admin")
+        rc = self._config_db.create_group(DEFAULT_GROUP_NAME, DEFAULT_ROLE)
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code(
                 "Can not create the group in the config DB.", rc=rc))
             return rc
 
         # Update the DB
-        rc = self._config_db.add_user_account("admin", "admin", "admin")
+        rc = self._config_db.add_user_account(DEFAULT_USER_ACCOUNT, DEFAULT_GROUP_NAME, DEFAULT_ROLE)
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code("Can not add the user in the DB.", rc=rc))
             return rc
@@ -720,7 +725,8 @@ class ConsoleServer(multiprocessing.Process):
                 return rc
 
             # Send message to the handler
-            request = RequestMsg(ConsoleServerEvent.INIT_DEFAULT_ACCOUNT, data={"username": "admin", "group_name": "admin", "role": "admin"})
+            request = RequestMsg(ConsoleServerEvent.INIT_DEFAULT_ACCOUNT, 
+                                 data={"username": DEFAULT_USER_ACCOUNT, "group_name": DEFAULT_GROUP_NAME, "role": DEFAULT_ROLE})
             rc = msg_queue.local_peer_send_msg(request)
             if rc != RcCode.SUCCESS:
                 self._logger.error(
@@ -761,14 +767,14 @@ class ConsoleServer(multiprocessing.Process):
                 time.sleep(1)
 
         # Update the DB
-        rc = self._op_db.create_group("admin", "admin")
+        rc = self._op_db.create_group(DEFAULT_GROUP_NAME, DEFAULT_ROLE)
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code(
                 "Can not create the group in the config DB.", rc=rc))
             return rc
 
         # Update the DB
-        rc = self._op_db.add_user_account("admin", "admin", "admin")
+        rc = self._op_db.add_user_account(DEFAULT_USER_ACCOUNT, DEFAULT_GROUP_NAME, DEFAULT_ROLE)
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code("Can not add the user in the DB.", rc=rc))
             return rc
@@ -843,8 +849,7 @@ class ConsoleServer(multiprocessing.Process):
         self._logger.info(self._logger_system.set_logger_rc_code("Receive the request {}.".format(reply.request)))
         # Do other action if request need
         match reply.request:
-            case ConsoleServerEvent.SET_BAUD_RATE | \
-                ConsoleServerEvent.PORT_JOIN_GROUP | ConsoleServerEvent.PORT_LEAVE_GROUP:
+            case ConsoleServerEvent.SET_BAUD_RATE:
                 # Get the socket object
                 rc, client_socket_obj = self._op_db.get_client_socket(reply.socket_fd)
                 if rc != RcCode.SUCCESS:
@@ -1222,6 +1227,10 @@ class ConsoleServer(multiprocessing.Process):
     def _process_destroy_group(self, client_socket_fd, client_request, client_socket_obj):
         self._logger.info(self._logger_system.set_logger_rc_code("Process destroy group request"))
 
+        if client_request.data["group_name"] == DEFAULT_GROUP_NAME:
+            return self._reply_client_message(client_socket_obj, client_request,
+                                              "failed", "Should not delete the default group.")
+
         # Parse the message and check if the Required parameters are in the message
         if not check_all_required_parameter(client_request, ["group_name"]):
             return self._reply_client_message(client_socket_obj, client_request,
@@ -1343,7 +1352,7 @@ class ConsoleServer(multiprocessing.Process):
         self._logger.info(self._logger_system.set_logger_rc_code("Process add user request"))
 
         # Parse the message and check if the Required parameters are in the message
-        if not check_all_required_parameter(client_request, ["role", "group_name"]):
+        if not check_all_required_parameter(client_request, ["username", "role", "group_name"]):
             return self._reply_client_message(client_socket_obj, client_request,
                                               "failed", "Missing the required parameters.")
 
@@ -1412,8 +1421,14 @@ class ConsoleServer(multiprocessing.Process):
     def _process_del_user_account(self, client_socket_fd, client_request, client_socket_obj):
         self._logger.info(self._logger_system.set_logger_rc_code("Process delete user request"))
 
+        # User should not delete the "admin" account
+        if client_request.data["username"] == DEFAULT_USER_ACCOUNT:
+            return self._reply_client_message(client_socket_obj, client_request,
+                                              "failed", "Should not delete the default user.")
+            
+
         # Parse the message and check if the Required parameters are in the message
-        if not check_all_required_parameter(client_request, []):
+        if not check_all_required_parameter(client_request, ["username"]):
             return self._reply_client_message(client_socket_obj, client_request,
                                               "failed", "Missing the required parameters.")
 
@@ -1553,6 +1568,10 @@ class ConsoleServer(multiprocessing.Process):
     
     def _process_user_join_group(self, client_socket_fd, client_request, client_socket_obj):
         self._logger.info(self._logger_system.set_logger_rc_code("Process user join group request {}".format(client_request.data)))
+
+        if client_request.data["username"] == DEFAULT_USER_ACCOUNT and client_request.data["group_name"] == DEFAULT_GROUP_NAME:
+            return self._reply_client_message(client_socket_obj, client_request,
+                                              "failed", "Deafult user should not leave the default group.")
 
         # Parse the message and check if the Required parameters are in the message
         if not check_all_required_parameter(client_request, ["username", "group_name"]):
@@ -1696,7 +1715,7 @@ class ConsoleServer(multiprocessing.Process):
 
         # Send the request to the handler
         handler_request = RequestMsg(
-            client_request.request, client_request.serial_port_id, client_socket_fd, client_request.data)
+            client_request.request, client_request.serial_port_id, client_socket_fd, client_request.exec_user, client_request.data)
         rc = message_queue.local_peer_send_msg(handler_request)
         if rc != RcCode.SUCCESS:
             self._logger.error(
@@ -1739,7 +1758,7 @@ class ConsoleServer(multiprocessing.Process):
 
         # Send the request to the handler
         handler_request = RequestMsg(
-            client_request.request, client_request.serial_port_id, client_socket_fd, client_request.data)
+            client_request.request, client_request.serial_port_id, client_socket_fd, client_request.exec_user, client_request.data)
         rc = message_queue.local_peer_send_msg(handler_request)
         if rc != RcCode.SUCCESS:
             self._logger.error(
@@ -1765,7 +1784,8 @@ class ConsoleServer(multiprocessing.Process):
 
         result = False
         match request:
-            case ConsoleServerEvent.CREATE_GROUP | ConsoleServerEvent.DESTROY_GROUP | \
+            case ConsoleServerEvent.CONNECT_SERIAL_PORT | \
+                 ConsoleServerEvent.CREATE_GROUP | ConsoleServerEvent.DESTROY_GROUP | \
                  ConsoleServerEvent.ADD_USER_ACCOUNT | ConsoleServerEvent.DEL_USER_ACCOUNT | \
                  ConsoleServerEvent.MODIFY_USER_ROLE | ConsoleServerEvent.USER_JOIN_GROUP | \
                  ConsoleServerEvent.USER_LEAVE_GROUP | ConsoleServerEvent.PORT_JOIN_GROUP | \
@@ -1787,14 +1807,14 @@ class ConsoleServer(multiprocessing.Process):
         rc, msg_dict = msg_deserialize(msg_str)
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code("Can not serialize the data.", rc=rc))
-            return self._reply_client_message(client_socket_obj, msg_str,
+            return self._reply_client_message(client_socket_obj, msg_dict,
                                               "failed", "Can not serialize the data.")
         self._logger.info(self._logger_system.set_logger_rc_code("resolve the request"))
         client_request = RequestMsg()
         rc = client_request.set_msg(msg_dict)
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code("Invalid message format.", rc=rc))
-            return self._reply_client_message(client_socket_obj, msg_str,
+            return self._reply_client_message(client_socket_obj, msg_dict,
                                               "failed", "Invalid message format.")
 
         # Check permission
@@ -1988,16 +2008,16 @@ class ConsoleServer(multiprocessing.Process):
         if rc != RcCode.SUCCESS:
             return
         self._logger.info(self._logger_system.set_logger_rc_code("Init server completely.", rc=rc))
-        
-        rc = self._init_handle_serial_port()
-        if rc != RcCode.SUCCESS:
-            return
-        self._logger.info(self._logger_system.set_logger_rc_code("Init serial port completely.", rc=rc))
 
         rc = self._init_handle_admin_user()
         if rc != RcCode.SUCCESS:
             return
         self._logger.info(self._logger_system.set_logger_rc_code("Init default account completely.", rc=rc))
+        
+        rc = self._init_handle_serial_port()
+        if rc != RcCode.SUCCESS:
+            return
+        self._logger.info(self._logger_system.set_logger_rc_code("Init serial port completely.", rc=rc))
 
 
         # Daemon main process

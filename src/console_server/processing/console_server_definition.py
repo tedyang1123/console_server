@@ -18,6 +18,7 @@ class ConsoleServerEvent(StrEnum):
 
     CREATE_GROUP = "create_group"
     DESTROY_GROUP = "destroy_group"
+    MODIFY_GROUP = "modify_group"
     GET_GROUP_CONFIG = "get_group_config"
     GET_GROUP_STATUS = "get_group_status"
 

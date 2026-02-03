@@ -46,6 +46,7 @@ class _ConsolerServerHandlerDb:
     
     def add_serial_port_access_socket(self, serial_port_id, uds_client_socket_obj, username):
         if serial_port_id not in self._serial_port_info_dict:
+            print(self._serial_port_info_dict)
             return RcCode.DATA_NOT_FOUND
         socket_fd = uds_client_socket_obj.uds_client_socket_fd_get()
         if socket_fd in self._serial_port_info_dict[serial_port_id]:
@@ -133,13 +134,6 @@ class _ConsolerServerHandlerDb:
         if client_socket_fd not in self._pending_conn_dict:
             return RcCode.DATA_NOT_FOUND, None
         return RcCode.SUCCESS, self._pending_conn_dict[client_socket_fd]
-    
-    def get_user_port_group(self, group_id=None):
-        if group_id is None:
-            return RcCode.SUCCESS, self._group_dict
-        if group_id not in self._group_dict:
-            return RcCode.DATA_NOT_FOUND, None
-        return RcCode.SUCCESS, self._group_dict[group_id]
     
     def add_user_account(self, username, group_name):
         if username in self._user_dict:
@@ -739,7 +733,7 @@ class ConsolerServerHandler(multiprocessing.Process):
             return rc
         return RcCode.SUCCESS
 
-    def _update_request_information(self, pending_connection, serial_port_id, username):
+    def _update_request_information(self, pending_connection, serial_port_id, exec_user):
         # Delete the pending connection
         rc = self._db.del_pending_connection(pending_connection.uds_client_socket_fd_get())
         if rc != RcCode.SUCCESS:
@@ -750,7 +744,7 @@ class ConsolerServerHandler(multiprocessing.Process):
                 return rc
 
         # Add the serial port to DB
-        rc = self._db.add_serial_port_access_socket(serial_port_id, pending_connection, username)
+        rc = self._db.add_serial_port_access_socket(serial_port_id, pending_connection, exec_user)
         if rc != RcCode.SUCCESS:
             self._logger.error(
                 self._logger_system.set_logger_rc_code(
@@ -761,18 +755,33 @@ class ConsolerServerHandler(multiprocessing.Process):
 
     def _connect_serial_port(self, pending_connection, request):
         serial_port_id = request.serial_port_id
-        username = request.data["username"]
+        exec_user = request.exec_user
 
         # Update the request information in the DB
-        rc = self._update_request_information(pending_connection, serial_port_id, username)
+        rc = self._update_request_information(pending_connection, serial_port_id, exec_user)
         if rc != RcCode.SUCCESS:
             return rc
 
+        rc, user_dict = self._db.get_user_account(exec_user)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(
+                self._logger_system.set_logger_rc_code("Can not get the user {} account".format(exec_user), rc=rc))
+            return rc
+        user_group_list = user_dict["group_list"]
+
+        # Check if port and user are in the same group.
         rc, serial_port_dict = self._db.get_serial_port(serial_port_id)
         if rc != RcCode.SUCCESS:
             self._logger.error(
                 self._logger_system.set_logger_rc_code("Get the serial port {} from the DB fail".format(serial_port_id), rc=rc))
             return rc
+        port_group_list = serial_port_dict["group_list"]
+        if len(list(set(port_group_list).intersection(user_group_list))):
+            rc = self._reply_client_message(pending_connection, request.request, request.serial_port_id, request.socket_fd, 
+                                            "Port {} does not allow user {} to access.".format(serial_port_id, exec_user), "Fail")
+            if rc != RcCode.SUCCESS:
+                return rc
+
         serial_port_obj = serial_port_dict["serial_port_obj"]
         rc, status = serial_port_obj.is_open_com_port()
         if rc != RcCode.SUCCESS:
