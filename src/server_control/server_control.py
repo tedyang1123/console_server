@@ -143,7 +143,7 @@ class ServerControlMode:
             self._logger.error(self._logger_system.set_logger_rc_code("Receive the incorrect reply."))
             return RcCode.INVALID_VALUE, None
         elif reply.result != "OK":
-            self._logger.warning(self._logger_system.set_logger_rc_code("Set baud rate failed due to invalid baud rate."))
+            self._logger.warning(self._logger_system.set_logger_rc_code("Process request failed."))
             return RcCode.FAILURE, None
         return RcCode.SUCCESS, reply.data
 
@@ -452,7 +452,7 @@ class ServerControlSerialAccessMode(ServerControlMode):
     def _connect_serial_port(self):
         rc = self._send_uds_socket_request_data(
             self._uds_client_socket, 
-            ConnectSerialPortRequest(self._serial_port_id, os.getlogin()))
+            ConnectSerialPortRequest(os.getlogin(), self._serial_port_id))
         if rc != RcCode.SUCCESS:
             return rc
 

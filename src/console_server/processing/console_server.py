@@ -223,6 +223,12 @@ class _ConsoleServerOpDb:
         del self._group_dict[group_name]
         return RcCode.SUCCESS
 
+    def modify_group(self, group_name, role):
+        if group_name not in self._group_dict:
+            return RcCode.DATA_NOT_FOUND
+        self._group_dict[group_name] = {"role": role}
+        return RcCode.SUCCESS
+
     def get_group(self, group_name=None):
         if group_name is None:
             return RcCode.SUCCESS, self._group_dict
@@ -280,7 +286,7 @@ class _ConsoleServerConfigDb:
             "group_list": []
         }
         return RcCode.SUCCESS
-    
+
     def del_serial_port(self, serial_port_id):
         if serial_port_id not in self._serial_port_dict:
             return RcCode.DATA_NOT_FOUND
@@ -303,7 +309,7 @@ class _ConsoleServerConfigDb:
             return RcCode.DATA_NOT_FOUND
         self._serial_port_dict[serial_port_id][field] = data
         return RcCode.SUCCESS
-    
+
     def add_user_account(self, username, role, group_name):
         if username in self._user_dict:
             return RcCode.DATA_EXIST
@@ -311,20 +317,20 @@ class _ConsoleServerConfigDb:
             return RcCode.DATA_NOT_FOUND
         self._user_dict[username] = {"role": role, "group_list": [group_name]}
         return RcCode.SUCCESS
-    
+
     def del_user_account(self, username):
         if username not in self._user_dict:
             return RcCode.DATA_NOT_FOUND
         del self._user_dict[username]
         return RcCode.SUCCESS
-    
+
     def get_user_account(self, username=None):
         if username is None:
             return RcCode.SUCCESS, self._user_dict
         if username not in self._user_dict:
             return RcCode.DATA_EXIST, None
         return RcCode.SUCCESS, self._user_dict[username]
-    
+
     def get_user_account_role(self, username):
         if username not in self._user_dict:
             return RcCode.DATA_NOT_FOUND, None
@@ -334,32 +340,38 @@ class _ConsoleServerConfigDb:
         if username not in self._user_dict:
             return RcCode.DATA_NOT_FOUND, None
         return RcCode.SUCCESS, self._user_dict[username]["group_list"]
-    
+
     def modify_user_account_role(self, username, role):
         if username not in self._user_dict:
             return RcCode.DATA_NOT_FOUND
         self._user_dict[username]["role"] = role
         return RcCode.SUCCESS
-    
+
     def create_group(self, group_name, role):
         if group_name in self._group_dict:
             return RcCode.DATA_EXIST
         self._group_dict[group_name] = {"role": role}
         return RcCode.SUCCESS
-    
+
     def destroy_group(self, group_name):
         if group_name not in self._group_dict:
             return RcCode.DATA_NOT_FOUND
         del self._group_dict[group_name]
         return RcCode.SUCCESS
-    
+
+    def modify_group(self, group_name, role):
+        if group_name not in self._group_dict:
+            return RcCode.DATA_NOT_FOUND
+        self._group_dict[group_name] = {"role": role}
+        return RcCode.SUCCESS
+
     def get_group(self, group_name=None):
         if group_name is None:
             return RcCode.SUCCESS, self._group_dict
         if group_name not in self._group_dict:
             return RcCode.DATA_NOT_FOUND, None
         return RcCode.SUCCESS, self._group_dict[group_name]
-    
+
     def user_join_group(self, username, group_name):
         if username not in self._user_dict:
             return RcCode.DATA_NOT_FOUND
@@ -368,7 +380,7 @@ class _ConsoleServerConfigDb:
             return RcCode.DATA_EXIST
         group_list.append(group_name)
         return RcCode.SUCCESS
-    
+
     def user_leave_group(self, username, group_name):
         if username not in self._user_dict:
             return RcCode.DATA_NOT_FOUND
@@ -377,7 +389,7 @@ class _ConsoleServerConfigDb:
             return RcCode.DATA_NOT_FOUND
         group_list.remove(group_name)
         return RcCode.SUCCESS
-    
+
     def port_join_group(self, serial_port_id, group_name):
         if serial_port_id not in self._serial_port_dict:
             return RcCode.DATA_NOT_FOUND
@@ -385,7 +397,7 @@ class _ConsoleServerConfigDb:
             return RcCode.DATA_EXIST
         self._serial_port_dict[serial_port_id]["group_list"].append(group_name)
         return RcCode.SUCCESS
-    
+
     def port_leave_group(self, serial_port_id, group_name):
         if serial_port_id not in self._serial_port_dict:
             return RcCode.DATA_NOT_FOUND
@@ -650,7 +662,8 @@ class ConsoleServer(multiprocessing.Process):
                 return rc
             
             # Send message to the handler
-            request = RequestMsg(ConsoleServerEvent.INIT_SERIAL_PORT, data={"serial_port_config": serial_port_group})
+            request = RequestMsg(ConsoleServerEvent.INIT_SERIAL_PORT, 
+                                 data={"serial_port_config": serial_port_group, "group_name": DEFAULT_GROUP_NAME})
             rc = msg_queue.local_peer_send_msg(request)
             if rc != RcCode.SUCCESS:
                 self._logger.error(
@@ -681,6 +694,11 @@ class ConsoleServer(multiprocessing.Process):
                             if rc != RcCode.SUCCESS:
                                 self._logger.error(self._logger_system.set_logger_rc_code(
                                     "Failed to create the serial port in the operation DB.", rc=rc))
+                                return rc
+                            rc = self._op_db.port_join_group(serial_port_id, DEFAULT_GROUP_NAME)
+                            if rc != RcCode.SUCCESS:
+                                self._logger.error(self._logger_system.set_logger_rc_code(
+                                    "Port can not join the default group in the operation DB.", rc=rc))
                                 return rc
                         status_dict[process_id] = True
                         status = True
@@ -1308,6 +1326,69 @@ class ConsoleServer(multiprocessing.Process):
         self._logger.info(self._logger_system.set_logger_rc_code("Process destroy group request successful."))
         return RcCode.SUCCESS
 
+    def _process_modify_group(self, client_socket_fd, client_request, client_socket_obj):
+        self._logger.info(self._logger_system.set_logger_rc_code("Process modify group request"))
+
+        if client_request.data["group_name"] == DEFAULT_GROUP_NAME:
+            return self._reply_client_message(client_socket_obj, client_request,
+                                              "failed", "Should not modify the default group.")
+
+        # Parse the message and check if the Required parameters are in the message
+        if not check_all_required_parameter(client_request, ["group_name", "role"]):
+            return self._reply_client_message(client_socket_obj, client_request,
+                                              "failed", "Missing the required parameters.")
+
+        group_name = client_request.data["group_name"]
+        role = client_request.data["role"]
+
+        # Update the DB
+        rc = self._config_db.modify_group(group_name, role)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not destroy the group in the config DB.", rc=rc))
+            return self._reply_client_message(client_socket_obj, client_request,
+                                              "failed", "Can not destroy the group in the config DB.")
+
+        # Update the role for the related user
+        rc, user_dict =  self._op_db.get_user_account()
+        if rc != RcCode.SUCCESS:
+            return self._reply_client_message(client_socket_obj, client_request,
+                                              "failed", "Can not get the users in the opeeration DB")
+        for username in user_dict:
+            if group_name in user_dict[username]["group_list"]:
+                # The group list has changed. Sync the user role
+                rc, update_role, msg = self._sync_user_role(username)
+                if rc != RcCode.SUCCESS:
+                    return self._reply_client_message(client_socket_obj, client_request, "failed", msg)
+                self._logger.info(self._logger_system.set_logger_rc_code("The new role {} applies to the operation DB".format(role)))
+
+                # Check the role has changed
+                rc, original_role = self._op_db.get_user_account_role(username)
+                if rc != RcCode.SUCCESS:
+                    self._logger.error(
+                        self._logger_system.set_logger_rc_code("Can not get the user role in the operation DB.", rc=rc))
+                    return self._reply_client_message(client_socket_obj, client_request,
+                                                    "failed", "Can not get the user role in the operation DB.")
+                if original_role != update_role:
+                    rc = self._op_db.modify_user_account_role(username, update_role)
+                    if rc != RcCode.SUCCESS:
+                        self._logger.error(
+                            self._logger_system.set_logger_rc_code("Can not set the user role in the operation DB.", rc=rc))
+                        return self._reply_client_message(client_socket_obj, client_request,
+                                                        "failed", "Can not set the user role in the operation DB.")
+
+        rc = self._op_db.modify_group(group_name, role)
+        if rc != RcCode.SUCCESS:
+            self._logger.error(self._logger_system.set_logger_rc_code("Can not destroy the group in the config DB.", rc=rc))
+            return self._reply_client_message(client_socket_obj, client_request,
+                                              "failed", "Can not destroy the group in the config DB.")
+
+        rc = self._reply_client_message(client_socket_obj, client_request, "OK", client_request.data)
+        if rc != RcCode.SUCCESS:
+            return rc
+
+        self._logger.info(self._logger_system.set_logger_rc_code("Process destroy modify request successful."))
+        return RcCode.SUCCESS
+
     def _process_get_group_config(self, client_socket_fd, client_request, client_socket_obj):
         self._logger.info(self._logger_system.set_logger_rc_code("Process get group request"))
 
@@ -1785,11 +1866,10 @@ class ConsoleServer(multiprocessing.Process):
         result = False
         match request:
             case ConsoleServerEvent.CONNECT_SERIAL_PORT | \
-                 ConsoleServerEvent.CREATE_GROUP | ConsoleServerEvent.DESTROY_GROUP | \
-                 ConsoleServerEvent.ADD_USER_ACCOUNT | ConsoleServerEvent.DEL_USER_ACCOUNT | \
-                 ConsoleServerEvent.MODIFY_USER_ROLE | ConsoleServerEvent.USER_JOIN_GROUP | \
-                 ConsoleServerEvent.USER_LEAVE_GROUP | ConsoleServerEvent.PORT_JOIN_GROUP | \
-                 ConsoleServerEvent.PORT_LEAVE_GROUP | \
+                 ConsoleServerEvent.CREATE_GROUP | ConsoleServerEvent.DESTROY_GROUP | ConsoleServerEvent.MODIFY_GROUP |\
+                 ConsoleServerEvent.ADD_USER_ACCOUNT | ConsoleServerEvent.DEL_USER_ACCOUNT | ConsoleServerEvent.MODIFY_USER_ROLE | \
+                 ConsoleServerEvent.USER_JOIN_GROUP | ConsoleServerEvent.USER_LEAVE_GROUP | \
+                 ConsoleServerEvent.PORT_JOIN_GROUP | ConsoleServerEvent.PORT_LEAVE_GROUP | \
                  ConsoleServerEvent.GET_GROUP_CONFIG | ConsoleServerEvent.GET_GROUP_STATUS | \
                  ConsoleServerEvent.GET_USER_CONFIG | ConsoleServerEvent.GET_USER_STATUS:
                 if role == UserRole.ROLE_ADMIN:
@@ -1803,7 +1883,7 @@ class ConsoleServer(multiprocessing.Process):
 
     def _handler_server_message(self, msg_str, client_socket_fd, client_socket_obj):
         # Resolve the replay message received from the user
-        self._logger.info(self._logger_system.set_logger_rc_code("Start process the request {}".format(msg_str)))
+        self._logger.info(self._logger_system.set_logger_rc_code("Start process the request"))
         rc, msg_dict = msg_deserialize(msg_str)
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code("Can not serialize the data.", rc=rc))
@@ -1846,6 +1926,8 @@ class ConsoleServer(multiprocessing.Process):
                 call_func = self._process_create_group
             case ConsoleServerEvent.DESTROY_GROUP:
                 call_func = self._process_destroy_group
+            case ConsoleServerEvent.MODIFY_GROUP:
+                call_func = self._process_modify_group
             case ConsoleServerEvent.GET_GROUP_CONFIG:
                 call_func = self._process_get_group_config
             case ConsoleServerEvent.GET_GROUP_STATUS:

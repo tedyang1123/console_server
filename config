@@ -3,7 +3,7 @@ import json
 import click
 
 from src.common.logger_system import LoggerSystem
-from src.common.msg import (AddUserAccountRequest, SetAliasNameRequest, SetBaudRateRequest,
+from src.common.msg import (AddUserAccountRequest, ModifyGroupRequest, SetAliasNameRequest, SetBaudRateRequest,
                             ConnectSerialPortRequest, CreateGroupRequest, DelUserAccountRequest, DestroyGroupRequest,
                             ModifyUserRole, PortJoinGroupRequest, PortLeaveGroupRequest, ReplyMsg, UserJoinGroupRequest,
                             UserLeaveGroupRequest, GetPortStatusRequest, GetGroupConfigRequest, GetUserStatus)
@@ -68,8 +68,6 @@ class RpcClient:
                     print("Data:\n{}\n".format(json.dumps(reply.data, indent=4, sort_keys=True)))
         else:
             print("Reason: {}\n".format(reply.data))
-        clieket_send("OK!")
-        client_socket_obj.uds_client_socket_close()
         return RcCode.SUCCESS
 
 ########################################################################################################################
@@ -145,7 +143,7 @@ def config_port_leave(exec_user, serial_port_id, group_name):
 @config_port.command('connect', short_help='This command is to connect the serial port.')
 @click.argument('exec_user', required=True)
 @click.argument('serial_port_id', type=click.IntRange(1, 24), required=True)
-def config_user_delete(exec_user, serial_port_id):
+def config_port_connect(exec_user, serial_port_id):
     request = ConnectSerialPortRequest(exec_user, serial_port_id)
     rc, data_str = request.serialize()
     if rc != RcCode.SUCCESS:
@@ -189,6 +187,20 @@ def config_group_destroy(exec_user, group_name):
     rc = client.send_command(data_str)
     print("Result {}".format(RcCode.covert_rc_to_string(rc)))
 
+@config_group.command('modify', short_help='This command is for users to modify the group.')
+@click.argument('exec_user', required=True)
+@click.argument('group_name', required=True)
+@click.argument('role', type=click.Choice(UserRole.get_list()), required=True)
+def config_group_modifyy(exec_user, group_name, role):
+    request = ModifyGroupRequest(exec_user, group_name, role)
+    rc, data_str = request.serialize()
+    if rc != RcCode.SUCCESS:
+        print("Can not convert the dictionary to string.")
+        return
+    client = RpcClient("/tmp/server_mgmt.sock")
+    rc = client.send_command(data_str)
+    print("Result {}".format(RcCode.covert_rc_to_string(rc)))
+
 config.add_command(config_group, name="group")
 
 @click.group(name="user")
@@ -200,7 +212,7 @@ def config_user():
 @click.argument('exec_user', required=True)
 @click.argument('username', required=True)
 @click.argument('group_name', required=True)
-@click.argument('role', type=click.Choice(UserRole.get_list()), required=True)
+@click.argument('role', type=click.Choice(UserRole.get_list()), required=False)
 def config_user_add(exec_user, username, group_name, role):
     request = AddUserAccountRequest(exec_user, username, group_name, role)
     rc, data_str = request.serialize()

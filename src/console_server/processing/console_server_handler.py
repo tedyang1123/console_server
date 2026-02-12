@@ -1,5 +1,6 @@
 import multiprocessing
 import select
+import time
 
 from src.common.logger_system import LoggerSystem
 from src.common.msg import ReplyMsg, RequestMsg, msg_serialize, check_all_required_parameter
@@ -156,10 +157,10 @@ class _ConsolerServerHandlerDb:
             return RcCode.DATA_NOT_FOUND, None
         return RcCode.SUCCESS, self._user_dict[username]
     
-    def create_group(self, group_name, role):
+    def create_group(self, group_name):
         if group_name in self._group_dict:
             return RcCode.DATA_EXIST
-        self._group_dict[group_name] = {"role": role}
+        self._group_dict[group_name] = {}
         return RcCode.SUCCESS
     
     def destroy_group(self, group_name):
@@ -228,6 +229,8 @@ class ConsolerServerHandler(multiprocessing.Process):
         self._pending_client_socket_dict = {}
 
         self._is_server_running = True
+
+        self._processing_time = 0.01
     
     def _close_client_socket(self, serial_port_id, uds_socket_obj):
         socket_fd = uds_socket_obj.uds_client_socket_fd_get()
@@ -338,10 +341,11 @@ class ConsolerServerHandler(multiprocessing.Process):
         self._logger.info(self._logger_system.set_logger_rc_code("Initialize the serial port"))
 
         # Parse the message and check if the Required parameters are in the message
-        if not check_all_required_parameter(msg_dict, ["serial_port_config"], required_exec_user=False):
+        if not check_all_required_parameter(msg_dict, ["serial_port_config", "group_name"], required_exec_user=False):
             return self._reply_queue_message(msg_dict, "Missing the required parameters.", "Failed")
 
         serial_port_config = msg_dict.data["serial_port_config"]
+        group_name = msg_dict.data["group_name"]
 
         # Init the serial port
         for serial_port_id in serial_port_config:
@@ -350,6 +354,11 @@ class ConsolerServerHandler(multiprocessing.Process):
                 self._logger.error(self._logger_system.set_logger_rc_code(
                     "Initial the serial port {} failed.".format(serial_port_id), rc=rc))
                 return self._reply_queue_message(msg_dict, "Can not initialize the serial port {}.".format(serial_port_id), "Failed")
+            
+            rc = self._db.port_join_group(serial_port_id, group_name)
+            if rc != RcCode.SUCCESS:
+                self._logger.error(self._logger_system.set_logger_rc_code("Port can not join the default group.", rc=rc))
+                return self._reply_queue_message(msg_dict, "Port can not join the default group.", "Failed")
             self._logger.info(
                 self._logger_system.set_logger_rc_code("Initialize the serial port {} successful.".format(serial_port_id)))
 
@@ -362,7 +371,7 @@ class ConsolerServerHandler(multiprocessing.Process):
         self._logger.info(self._logger_system.set_logger_rc_code("Initialize the default user account"))
 
         # Parse the message and check if the Required parameters are in the message
-        if not check_all_required_parameter(msg_dict, ["username", "group_name", "role"], required_exec_user=False):
+        if not check_all_required_parameter(msg_dict, ["username", "group_name"], required_exec_user=False):
             return self._reply_queue_message(msg_dict, "Missing the required parameters.", "Failed")
 
         username = msg_dict.data["username"]
@@ -370,7 +379,7 @@ class ConsolerServerHandler(multiprocessing.Process):
         role = msg_dict.data["role"]
 
         # Create the group in the DB
-        rc = self._db.create_group(group_name, role)
+        rc = self._db.create_group(group_name)
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code(
                 "Can not add the group {} to DB".format(group_name), rc=rc))
@@ -483,7 +492,7 @@ class ConsolerServerHandler(multiprocessing.Process):
         role = msg_dict.data["role"]
 
         # Create the group in the DB
-        rc = self._db.create_group(group_name, role)
+        rc = self._db.create_group(group_name)
         if rc != RcCode.SUCCESS:
             self._logger.error(self._logger_system.set_logger_rc_code(
                 "Can not add the group {} to DB".format(group_name), rc=rc))
@@ -696,9 +705,10 @@ class ConsolerServerHandler(multiprocessing.Process):
     # Process Server Socket Data Relate API
     ##########################################################################################################
 
-    def _reply_client_message(self, client_socket_obj, request=None, serial_port_id=None, socket_fd=None, data=None, result=None):
+    def _reply_client_message(self, client_socket_obj, client_request, data=None, result=None):
         # Create reply message
-        reply_msg = ReplyMsg(request, serial_port_id, socket_fd, data, result)
+        reply_msg = ReplyMsg(client_request.request, client_request.serial_port_id, client_request.socket_fd, 
+                             client_request.exec_user, data, result)
         rc, msg_dict = reply_msg.get_msg()
         if rc != RcCode.SUCCESS:
             self._logger.error(
@@ -777,7 +787,7 @@ class ConsolerServerHandler(multiprocessing.Process):
             return rc
         port_group_list = serial_port_dict["group_list"]
         if len(list(set(port_group_list).intersection(user_group_list))):
-            rc = self._reply_client_message(pending_connection, request.request, request.serial_port_id, request.socket_fd, 
+            rc = self._reply_client_message(pending_connection, request, 
                                             "Port {} does not allow user {} to access.".format(serial_port_id, exec_user), "Fail")
             if rc != RcCode.SUCCESS:
                 return rc
@@ -794,7 +804,7 @@ class ConsolerServerHandler(multiprocessing.Process):
                     self._logger_system.set_logger_rc_code("Can not open serial port {}".format(serial_port_id), rc=rc))
                 return rc
 
-        rc = self._reply_client_message(pending_connection, request.request, request.serial_port_id, request.socket_fd, request.data, "OK")
+        rc = self._reply_client_message(pending_connection, request, request.data, "OK")
         if rc != RcCode.SUCCESS:
             return rc
         self._logger.info(
@@ -902,7 +912,7 @@ class ConsolerServerHandler(multiprocessing.Process):
             return rc
 
         # Receive the socket event
-        events = server_socket_epoll.poll(0.01)
+        events = server_socket_epoll.poll(self._processing_time)
         for socket_fd, event in events:
             if socket_fd == server_socket_obj.uds_server_socket_fd_get():
                 rc = self._accept_new_client(server_socket_obj)
@@ -1063,18 +1073,19 @@ class ConsolerServerHandler(multiprocessing.Process):
             return
 
         while self._is_server_running:
-            rc = self.process_message_queue_data()
-            if rc != RcCode.SUCCESS:
-                self._logger.error(
-                    self._logger_system.set_logger_rc_code(
-                        "Process data reading from message queue failed.", rc=rc))
-                break
-
             rc = self.process_server_socket_event()
             if rc != RcCode.SUCCESS:
                 self._logger.error(
                     self._logger_system.set_logger_rc_code(
                         "Process data reading from server socket failed.", rc=rc))
+                break
+
+            start_time = time.perf_counter()
+            rc = self.process_message_queue_data()
+            if rc != RcCode.SUCCESS:
+                self._logger.error(
+                    self._logger_system.set_logger_rc_code(
+                        "Process data reading from message queue failed.", rc=rc))
                 break
 
             rc = self.process_client_socket_data()
@@ -1090,3 +1101,5 @@ class ConsolerServerHandler(multiprocessing.Process):
                     self._logger_system.set_logger_rc_code(
                         "Process data reading from serial port failed.", rc=rc))
                 break
+            end_time = time.perf_counter()
+            self._processing_time = end_time - start_time

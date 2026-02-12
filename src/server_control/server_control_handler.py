@@ -213,10 +213,10 @@ class ServerControlHandlerDirectAccessMode:
         self._login = False
 
     def _login_system(self):
-        serial_port = (
+        serial_port_id = (
             self._ssh_server_mgr_dict["ssh_server_network_mgr"].get_serial_port_by_ssh_port(self._server_port))
         self._server_control_mode = ServerControlSerialAccessMode(
-            self._ssh_server_mgr_dict, serial_port, self._logger_system)
+            self._trans_func_dict, serial_port_id, self._logger_system)
         rc = self._server_control_mode.init_control_mode()
         if rc != RcCode.SUCCESS:
             self._logger.error(

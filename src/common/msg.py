@@ -77,6 +77,10 @@ class DestroyGroupRequest(RequestMsg):
     def __init__(self, exec_user, group_name):
         RequestMsg.__init__(self, ConsoleServerEvent.DESTROY_GROUP, None, None, exec_user, {"group_name": group_name})
 
+class ModifyGroupRequest(RequestMsg):
+    def __init__(self, exec_user, group_name, role):
+        RequestMsg.__init__(self, ConsoleServerEvent.MODIFY_GROUP, None, None, exec_user, {"group_name": group_name, "role": role})
+
 class GetGroupConfigRequest(RequestMsg):
     def __init__(self, exec_user, group_name=None):
         if group_name is not None:
@@ -93,7 +97,10 @@ class GetGroupStatusRequest(RequestMsg):
 
 class AddUserAccountRequest(RequestMsg):
     def __init__(self, exec_user, username, group_name, role=""):
-        RequestMsg.__init__(self, ConsoleServerEvent.ADD_USER_ACCOUNT, None, None, exec_user, {"username": username, "role": role, "group_name": group_name})
+        if role is not None:
+            RequestMsg.__init__(self, ConsoleServerEvent.ADD_USER_ACCOUNT, None, None, exec_user, {"username": username, "role": role, "group_name": group_name})
+        else:
+            RequestMsg.__init__(self, ConsoleServerEvent.ADD_USER_ACCOUNT, None, None, exec_user, {"username": username, "role": "", "group_name": group_name})
 
 class DelUserAccountRequest(RequestMsg):
     def __init__(self, exec_user, username):
